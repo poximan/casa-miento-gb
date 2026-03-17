@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="screen_background">#FFF8F4EF</color>
+    <color name="toolbar_background">#FFF3E8DD</color>
+    <color name="toolbar_text">#FF3A2A20</color>
+    <color name="card_background">#FFFFFCF9</color>
+    <color name="text_primary">#FF35281E</color>
+    <color name="text_muted">#FF6C5A4A</color>
+
+    <color name="status_yes">#FF1A8F5D</color>
+    <color name="status_no">#FFC74A4A</color>
+
+    <color name="drawer_background">#FFF5ECE2</color>
+    <color name="drawer_title">#FF4B3627</color>
+    <color name="drawer_handle">#FFB78A63</color>
+
+    <color name="splash_background">#FFF7E9DA</color>
+    <color name="splash_title">#FF563822</color>
+    <color name="splash_subtitle">#FF785741</color>
+    <color name="splash_progress">#FFB86A39</color>
+    <color name="splash_progress_track">#FFE8C8AD</color>
+</resources>

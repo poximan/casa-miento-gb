@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">Casa Miento Organizador</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="organizer_panel">Panel organizador</string>
+    <string name="organizer_summary_title">Resumen de respuestas</string>
+    <string name="organizer_diffusion_title">Mensaje difusion</string>
+    <string name="open_menu">Abrir menu</string>
+    <string name="menu_confirmed">Lista de confirmados</string>
+    <string name="menu_diffusion">Mensaje difusion</string>
+
+    <string name="status_yes">Si</string>
+    <string name="status_no">No</string>
+    <string name="total_people">Total personas</string>
+    <string name="menu_requested">Menus pedidos (solo confirmados Si)</string>
+    <string name="no_menu_data">Aun no hay menus cargados.</string>
+    <string name="refresh">Refrescar</string>
+    <string name="extra_guests">Invitados extra: %1$s</string>
+    <string name="last_sync">Ultima sincronizacion: %1$s</string>
+    <string name="no_sync_yet">Sin sincronizacion aun.</string>
+    <string name="no_records">No hay respuestas para mostrar.</string>
+
+    <string name="diffusion_hint">Selecciona destinatarios, completa asunto y mensaje, y envia la difusion.</string>
+    <string name="recipient_group">Grupo destinatario</string>
+    <string name="filter_yes">Enviar a quienes confirmaron Si</string>
+    <string name="filter_no">Enviar a quienes confirmaron No</string>
+    <string name="filter_all">Enviar a todos</string>
+    <string name="recipient_count_default">Destinatarios: 0</string>
+    <string name="recipient_count">Destinatarios: %1$d</string>
+    <string name="email_subject">Asunto</string>
+    <string name="email_body">Mensaje</string>
+    <string name="send_diffusion">Enviar difusion</string>
+    <string name="required_field">Campo obligatorio</string>
+
+    <string name="splash_title">Casa Miento</string>
+    <string name="splash_subtitle">Cargando datos</string>
+    <string name="splash_loading">Cargando... %1$d%%</string>
+    <string name="splash_loading_default">Cargando... 0%</string>
+</resources>
