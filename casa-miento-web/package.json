@@ -1,0 +1,22 @@
+{
+  "name": "casa-miento-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "desplegar": "npx vercel --prod",
+    "desplegar-local": "npm run build && node scripts/local-server.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.51",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^8.0.2",
+    "pg": "^8.11.3",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}

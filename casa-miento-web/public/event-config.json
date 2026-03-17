@@ -1,0 +1,30 @@
+{
+  "couple": {
+    "bride": "Evelin",
+    "groom": "Damián"
+  },
+  "eventDate": "2027-02-20T17:00:00-03:00",
+  "venue": "Alborada Eventos",
+  "mapsLink": "https://maps.app.goo.gl/3JpxM6ucFftxQvk46",
+  "bank": {
+    "alias": "EVELIN.DAMIAN.ALIAS",
+    "cbu": "0000000000000000000000",
+    "holder": "Evelin y Damián"
+  },
+  "mercadoPago": {
+    "deepLink": "mercadopago://send?alias=EVELIN.DAMIAN.ALIAS",
+    "webLink": "https://www.mercadopago.com.ar/money-transfer",
+    "note": "Si el deep link cambia, actualiza este valor con el formato que necesites."
+  },
+  "photos": [
+    "https://images.unsplash.com/photo-1520854221050-0f4caff449fb?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1520854221050-0f4caff449fb?auto=format&fit=crop&w=1200&q=80&sat=-20",
+    "https://images.unsplash.com/photo-1529634898690-87f1df34a17b?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "admin": {
+    "user": "admin",
+    "password": "evelindamian"
+  }
+}
