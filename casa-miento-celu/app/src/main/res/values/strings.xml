@@ -36,4 +36,7 @@
     <string name="splash_subtitle">Cargando datos</string>
     <string name="splash_loading">Cargando... %1$d%%</string>
     <string name="splash_loading_default">Cargando... 0%</string>
+
+    <string name="config_error_snackbar">Configuracion incompleta. Faltan claves: %1$s</string>
+    <string name="config_error_close">Cerrar app</string>
 </resources>

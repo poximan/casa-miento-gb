@@ -7,15 +7,15 @@
       <div class="grid-two">
         <div class="field">
           <label>Usuario</label>
-          <input v-model="username" type="text" />
+          <input v-model="username" type="text" autocomplete="username" />
         </div>
         <div class="field">
           <label>Clave</label>
-          <input v-model="password" type="password" />
+          <input v-model="password" type="password" autocomplete="current-password" />
         </div>
       </div>
       <button class="primary-btn" @click="login">Ingresar</button>
-      <div v-if="loginError" class="error">{{ loginError }}</div>
+      <div v-if="panelError" class="error">{{ panelError }}</div>
     </div>
 
     <div v-else class="summary">
@@ -23,15 +23,17 @@
         <h3>Resumen de respuestas</h3>
         <div class="actions">
           <button class="ghost-btn" @click="logout">Salir</button>
-          <button class="primary-btn" @click="fetchSummary" :disabled="loading">
+          <button class="primary-btn" @click="fetchSummary()" :disabled="loading">
             {{ loading ? 'Actualizando...' : 'Refrescar' }}
           </button>
         </div>
       </div>
 
+      <div v-if="panelError" class="error">{{ panelError }}</div>
+
       <div class="stats">
         <div class="stat">
-          <div class="label">Sí</div>
+          <div class="label">Si</div>
           <div class="value">{{ summary.yes }}</div>
         </div>
         <div class="stat">
@@ -57,7 +59,7 @@
             <span class="sort">{{ sortIndicator('attending') }}</span>
           </button>
           <button class="head-btn" @click="setSort('primary_menu')">
-            Menú
+            Menu
             <span class="sort">{{ sortIndicator('primary_menu') }}</span>
           </button>
           <button class="head-btn" @click="setSort('created_at')">
@@ -65,11 +67,13 @@
             <span class="sort">{{ sortIndicator('created_at') }}</span>
           </button>
         </div>
-        <div v-if="!summary.rows.length" class="empty">Sin respuestas aún.</div>
+
+        <div v-if="!summary.rows.length" class="empty">Sin respuestas aun.</div>
+
         <template v-for="row in sortedRows" :key="row.id">
           <div class="table-row parent">
             <span>{{ row.primary_first_name }} {{ row.primary_last_name }}</span>
-            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Sí' : 'No' }}</span>
+            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
             <span>{{ formatMenu(row.primary_menu) }}</span>
             <span>{{ formatDate(row.created_at) }}</span>
           </div>
@@ -79,37 +83,50 @@
             class="table-row child"
           >
             <span class="child-name">
-              <span class="child-prefix">└</span>
+              <span class="child-prefix">|-</span>
               {{ guest.firstName }} {{ guest.lastName }}
               <span class="child-tag">Invitado extra</span>
             </span>
-            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Sí' : 'No' }}</span>
+            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
             <span>{{ formatMenu(guest.menu) }}</span>
             <span>{{ formatDate(row.created_at) }}</span>
           </div>
         </template>
       </div>
     </div>
+
+    <AppModal
+      :open="modal.open"
+      :title="modal.title"
+      :detail="modal.detail"
+      @close="closeModal"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import AppModal from './AppModal.vue';
+import { AppError } from '../domain/AppError.js';
+import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
+import { useErrorModal } from '../composables/useErrorModal.js';
 
 const props = defineProps({
   adminUser: {
     type: String,
-    required: true,
+    default: '',
   },
   adminPassword: {
     type: String,
-    required: true,
+    default: '',
   },
 });
 
-const username = ref('');
-const password = ref('');
-const loginError = ref('');
+const { modal, openForError, closeModal } = useErrorModal();
+
+const username = ref(props.adminUser || '');
+const password = ref(props.adminPassword || '');
+const panelError = ref('');
 const loading = ref(false);
 const loggedIn = ref(false);
 
@@ -163,36 +180,49 @@ const setSort = (key) => {
 
 const sortIndicator = (key) => {
   if (sortState.key !== key) return '';
-  return sortState.dir === 'asc' ? '▲' : '▼';
+  return sortState.dir === 'asc' ? '^' : 'v';
 };
 
-const getToken = () => `${props.adminUser}:${props.adminPassword}`;
+const getToken = () => `${username.value.trim()}:${password.value}`;
 
 const login = async () => {
-  if (username.value !== props.adminUser || password.value !== props.adminPassword) {
-    loginError.value = 'Credenciales inválidas';
+  if (!username.value.trim() || !password.value) {
+    panelError.value = 'Completa usuario y clave.';
     return;
   }
-  loginError.value = '';
+
+  panelError.value = '';
   loggedIn.value = true;
-  await fetchSummary();
+
+  const ok = await fetchSummary(true);
+  if (!ok) {
+    loggedIn.value = false;
+  }
 };
 
 const logout = () => {
   loggedIn.value = false;
-  username.value = '';
-  password.value = '';
+  panelError.value = '';
 };
 
-const fetchSummary = async () => {
-  if (!loggedIn.value) return;
+const fetchSummary = async (fromLogin = false) => {
+  if (!loggedIn.value && !fromLogin) return false;
+
   loading.value = true;
   try {
-    const res = await fetch('/api/admin-summary', {
+    const response = await fetch('/api/admin-summary', {
       headers: { 'x-admin-token': getToken() },
     });
-    if (!res.ok) throw new Error('No se pudo obtener el resumen');
-    const data = await res.json();
+
+    if (!response.ok) {
+      const mapped = await ApiErrorMapper.fromResponse(response, 'No se pudo obtener el resumen.');
+      openForError(mapped);
+      throw mapped;
+    }
+
+    panelError.value = '';
+    const data = await response.json();
+
     summary.yes = data.yes || 0;
     summary.no = data.no || 0;
     summary.people = data.people || 0;
@@ -201,8 +231,19 @@ const fetchSummary = async () => {
       email: row.email || '',
       extra_guests: Array.isArray(row.extra_guests) ? row.extra_guests : [],
     }));
-  } catch (err) {
-    loginError.value = err.message;
+
+    return true;
+  } catch (errorCaught) {
+    const mapped = errorCaught instanceof AppError
+      ? errorCaught
+      : ApiErrorMapper.fromUnknown(errorCaught, 'No se pudo obtener el resumen.');
+
+    if (!(errorCaught instanceof AppError)) {
+      openForError(mapped);
+    }
+
+    panelError.value = mapped.message;
+    return false;
   } finally {
     loading.value = false;
   }
@@ -215,12 +256,12 @@ const formatDate = (date) => {
 };
 
 const formatMenu = (menu) => {
-  if (!menu) return 'Clásico';
+  if (!menu) return 'Clasico';
   const normalized = menu.toLowerCase();
   const map = {
-    clasico: 'Clásico',
+    clasico: 'Clasico',
     vegetariano: 'Vegetariano',
-    celiaco: 'Celíaco',
+    celiaco: 'Celiaco',
     infantil: 'Infantil',
   };
   return map[normalized] || menu;
@@ -258,8 +299,9 @@ input {
 }
 
 .error {
-  color: #fca5a5;
+  color: #ad2b42;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .summary-head {
@@ -363,7 +405,7 @@ input {
 }
 
 .child-prefix {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--muted);
 }
 
@@ -380,7 +422,7 @@ input {
 }
 
 .no {
-  color: #fca5a5;
+  color: #ad2b42;
 }
 
 .empty {

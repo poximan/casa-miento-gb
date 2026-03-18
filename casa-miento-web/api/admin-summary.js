@@ -1,4 +1,6 @@
 import pool, { ensureTables } from './db.js';
+import { isConfigError, requiredEnv, sendSafeConfigError } from './config.js';
+import { logOperationalError, mapOperationalError } from './operational-error.js';
 
 const withCors = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,7 +9,7 @@ const withCors = (res) => {
 };
 
 const isAuthorized = (req) => {
-  const token = process.env.ADMIN_TOKEN || 'admin:evelindamian';
+  const token = requiredEnv('ADMIN_TOKEN');
   const incoming = req.headers['x-admin-token'];
   return incoming === token;
 };
@@ -19,17 +21,17 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!isAuthorized(req)) {
-    res.status(401).json({ error: 'No autorizado' });
-    return;
-  }
-
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Método no permitido' });
-    return;
-  }
-
   try {
+    if (!isAuthorized(req)) {
+      res.status(401).json({ error: 'No autorizado' });
+      return;
+    }
+
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Metodo no permitido' });
+      return;
+    }
+
     await ensureTables();
     const { rows } = await pool.query(
       'SELECT id, primary_first_name, primary_last_name, primary_menu, attending, email, extra_guests, created_at FROM rsvps ORDER BY created_at DESC;'
@@ -41,7 +43,16 @@ export default async function handler(req, res) {
 
     res.status(200).json({ yes, no, people, rows });
   } catch (err) {
-    console.error('Error resumen admin:', err);
-    res.status(500).json({ error: 'No se pudo obtener el resumen' });
+    if (isConfigError(err)) {
+      sendSafeConfigError(res);
+      return;
+    }
+    const mapped = mapOperationalError(err);
+    logOperationalError('admin-summary', err, mapped);
+    res.status(mapped.status).json({
+      error: mapped.error,
+      code: mapped.code,
+      hint: mapped.hint,
+    });
   }
 }

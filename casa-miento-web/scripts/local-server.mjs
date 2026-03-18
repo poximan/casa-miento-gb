@@ -58,7 +58,6 @@ const serveStatic = async (req, res) => {
     res.end(data);
   } catch (err) {
     if (pathname !== '/index.html') {
-      // fallback SPA routing
       try {
         const indexHtml = await fs.readFile(path.join(distDir, 'index.html'));
         res.status(200);
@@ -87,7 +86,15 @@ const server = http.createServer((req, res) => {
   return serveStatic(req, res);
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor local de producción listo en http://localhost:${PORT}`);
+const rawServerPort = process.env.SERVER_PORT;
+if (!rawServerPort) {
+  throw new Error('Falta SERVER_PORT en variables de entorno.');
+}
+const serverPort = Number(rawServerPort);
+if (!Number.isFinite(serverPort) || serverPort <= 0) {
+  throw new Error('SERVER_PORT debe ser un numero valido.');
+}
+
+server.listen(serverPort, () => {
+  console.log(`Servidor local de produccion listo en http://localhost:${serverPort}`);
 });

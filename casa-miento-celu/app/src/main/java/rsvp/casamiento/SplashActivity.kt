@@ -9,18 +9,34 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import rsvp.casamiento.config.AppConfigurationValueProvider
+import rsvp.casamiento.config.ConfigurationValidationService
 import rsvp.casamiento.data.NeonRsvpRepository
 import rsvp.casamiento.databinding.ActivitySplashBinding
 import rsvp.casamiento.model.OrganizerBootstrapCache
+import rsvp.casamiento.ui.feedback.ConfigIssueFeedbackService
+import rsvp.casamiento.ui.feedback.SnackbarConfigIssueFeedbackService
 
 class SplashActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashBinding
+    private val configValidationService = ConfigurationValidationService(AppConfigurationValueProvider())
+    private lateinit var configFeedbackService: ConfigIssueFeedbackService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        configFeedbackService = SnackbarConfigIssueFeedbackService(this)
+
+        val missingKeys = configValidationService.findMissingKeys()
+        if (missingKeys.isNotEmpty()) {
+            configFeedbackService.showMissingConfig(binding.root, missingKeys) {
+                finishAffinity()
+            }
+            return
+        }
+
         bootstrap()
     }
 

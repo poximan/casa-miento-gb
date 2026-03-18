@@ -1,5 +1,7 @@
 import pool, { ensureTables } from './db.js';
 import { sendInviteEmail } from './email.js';
+import { isConfigError, sendSafeConfigError } from './config.js';
+import { logOperationalError, mapOperationalError } from './operational-error.js';
 
 const parseBody = async (req) => {
   if (req.body) return req.body;
@@ -81,7 +83,16 @@ export default async function handler(req, res) {
 
     res.status(200).json({ ok: true, id: result.rows[0].id });
   } catch (err) {
-    console.error('Error en rsvp:', err);
-    res.status(500).json({ error: 'No pudimos guardar tu respuesta.' });
+    if (isConfigError(err)) {
+      sendSafeConfigError(res);
+      return;
+    }
+    const mapped = mapOperationalError(err);
+    logOperationalError('rsvp', err, mapped);
+    res.status(mapped.status).json({
+      error: mapped.error,
+      code: mapped.code,
+      hint: mapped.hint,
+    });
   }
 }

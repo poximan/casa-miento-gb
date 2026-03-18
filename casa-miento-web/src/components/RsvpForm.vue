@@ -2,7 +2,7 @@
   <div class="card rsvp">
     <div class="header">
       <div class="badge">Confirmar asistencia</div>
-      <p>Contanos si podés venir y quiénes te acompañan. Podés agregar tantos invitados como necesites.</p>
+      <p>Contanos si podes venir y quienes te acompanan. Podes agregar tantos invitados como necesites.</p>
     </div>
 
     <div class="attending-toggle">
@@ -12,7 +12,7 @@
         type="button"
         @click="form.attending = true"
       >
-        Sí, voy
+        Si, voy
       </button>
       <button
         class="ghost-btn"
@@ -34,11 +34,11 @@
         <input v-model="form.primaryLastName" type="text" placeholder="Tu apellido" />
       </div>
       <div class="field">
-        <label>Menú titular</label>
+        <label>Menu titular</label>
         <select v-model="form.primaryMenu">
-          <option value="clasico">Clásico</option>
+          <option value="clasico">Clasico</option>
           <option value="vegetariano">Vegetariano</option>
-          <option value="celiaco">Celíaco</option>
+          <option value="celiaco">Celiaco</option>
           <option value="infantil">Infantil</option>
         </select>
       </div>
@@ -47,7 +47,7 @@
         <input v-model="form.email" type="email" placeholder="correo@ejemplo.com" />
       </div>
       <div class="field">
-        <label>Teléfono (opcional)</label>
+        <label>Telefono (opcional)</label>
         <input v-model="form.phone" type="tel" placeholder="Solo por si necesitamos contactarte" />
       </div>
     </div>
@@ -57,9 +57,9 @@
         <h3>Invitados adicionales</h3>
         <button type="button" class="ghost-btn" @click="addGuest">Agregar invitado</button>
       </div>
-      <p class="small">Cada invitado extra puede indicar menú especial.</p>
+      <p class="small">Cada invitado extra puede indicar menu especial.</p>
 
-      <div v-if="!form.extraGuests.length" class="empty">Todavía no agregaste invitados extra.</div>
+      <div v-if="!form.extraGuests.length" class="empty">Todavia no agregaste invitados extra.</div>
 
       <div v-for="(guest, index) in form.extraGuests" :key="index" class="guest card">
         <div class="guest-head">
@@ -76,11 +76,11 @@
             <input v-model="guest.lastName" type="text" placeholder="Apellido" />
           </div>
           <div class="field">
-            <label>Menú</label>
+            <label>Menu</label>
             <select v-model="guest.menu">
-              <option value="clasico">Clásico</option>
+              <option value="clasico">Clasico</option>
               <option value="vegetariano">Vegetariano</option>
-              <option value="celiaco">Celíaco</option>
+              <option value="celiaco">Celiaco</option>
               <option value="infantil">Infantil</option>
             </select>
           </div>
@@ -90,17 +90,29 @@
 
     <div class="submit">
       <button class="primary-btn" :disabled="isSubmitting" @click="submit">
-        {{ isSubmitting ? 'Enviando...' : 'Confirmar invitación' }}
+        {{ isSubmitting ? 'Enviando...' : 'Confirmar invitacion' }}
       </button>
       <div v-if="message" class="message" :class="message.kind">{{ message.text }}</div>
     </div>
+
+    <AppModal
+      :open="modal.open"
+      :title="modal.title"
+      :detail="modal.detail"
+      @close="closeModal"
+    />
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
+import AppModal from './AppModal.vue';
+import { AppError } from '../domain/AppError.js';
+import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
+import { useErrorModal } from '../composables/useErrorModal.js';
 
 const emit = defineEmits(['submitted']);
+const { modal, openForError, closeModal } = useErrorModal();
 
 const form = reactive({
   attending: true,
@@ -131,11 +143,13 @@ const validate = () => {
   if (!form.primaryFirstName.trim() || !form.primaryLastName.trim()) {
     return 'Nombre y apellido son obligatorios.';
   }
+
   for (const guest of form.extraGuests) {
     if (!guest.firstName.trim() || !guest.lastName.trim()) {
       return 'Completa nombre y apellido de cada invitado extra.';
     }
   }
+
   return null;
 };
 
@@ -150,7 +164,7 @@ const submit = async () => {
   message.value = null;
 
   try {
-    const res = await fetch('/api/rsvp', {
+    const response = await fetch('/api/rsvp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -166,13 +180,15 @@ const submit = async () => {
       }),
     });
 
-    if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail?.error || 'No pudimos guardar tu respuesta.');
+    if (!response.ok) {
+      const mapped = await ApiErrorMapper.fromResponse(response, 'No pudimos guardar tu respuesta.');
+      openForError(mapped);
+      throw mapped;
     }
 
-    message.value = { kind: 'success', text: '¡Respuesta recibida! Gracias por avisarnos.' };
+    message.value = { kind: 'success', text: 'Respuesta recibida. Gracias por avisarnos.' };
     emit('submitted');
+
     form.primaryFirstName = '';
     form.primaryLastName = '';
     form.primaryMenu = 'clasico';
@@ -180,8 +196,16 @@ const submit = async () => {
     form.phone = '';
     form.extraGuests = [];
     form.attending = true;
-  } catch (err) {
-    message.value = { kind: 'error', text: err.message };
+  } catch (errorCaught) {
+    const mapped = errorCaught instanceof AppError
+      ? errorCaught
+      : ApiErrorMapper.fromUnknown(errorCaught, 'No pudimos guardar tu respuesta.');
+
+    if (!(errorCaught instanceof AppError)) {
+      openForError(mapped);
+    }
+
+    message.value = { kind: 'error', text: mapped.message };
   } finally {
     isSubmitting.value = false;
   }
@@ -226,7 +250,7 @@ label {
 input,
 select {
   width: 100%;
-  padding: 12px 12px;
+  padding: 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
@@ -288,10 +312,10 @@ select:focus {
 }
 
 .message.success {
-  color: #bef6d5;
+  color: #197247;
 }
 
 .message.error {
-  color: #fca5a5;
+  color: #ad2b42;
 }
 </style>

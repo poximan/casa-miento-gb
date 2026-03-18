@@ -1,8 +1,9 @@
 import fs from 'node:fs/promises';
 import nodemailer from 'nodemailer';
-import { generateInviteCard } from './invite-card.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { generateInviteCard } from './invite-card.js';
+import { requiredEnv, requiredIntEnv } from './config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,69 +25,61 @@ const buildEmail = (payload, eventConfig) => {
   const attendingText = payload.attending ? 'Asiste' : 'No asiste';
   const lines = [
     `Invitado: ${payload.primaryGuest.firstName} ${payload.primaryGuest.lastName}`,
-    `Menú titular: ${payload.primaryGuest.menu || 'clasico'}`,
+    `Menu titular: ${payload.primaryGuest.menu || 'clasico'}`,
     `Asistencia: ${attendingText}`,
-    `Acompañantes: ${extra.length}`,
+    `Acompanantes: ${extra.length}`,
     `Total personas: ${peopleCount}`,
     `Email contacto: ${payload.email || 'no informado'}`,
-    `Teléfono: ${payload.phone || 'no informado'}`,
+    `Telefono: ${payload.phone || 'no informado'}`,
     `Evento: ${eventConfig?.couple?.bride ?? ''} & ${eventConfig?.couple?.groom ?? ''}`,
     `Fecha: ${eventConfig?.eventDate ?? ''}`,
-    `Dirección: ${eventConfig?.venue ?? ''}`,
+    `Direccion: ${eventConfig?.venue ?? ''}`,
     `Mapa: ${eventConfig?.mapsLink ?? ''}`,
   ];
   if (extra.length) {
     lines.push(
       '',
-      'Detalle acompañantes:',
-      ...extra.map(
-        (g, idx) => `${idx + 1}. ${g.firstName} ${g.lastName} - menú: ${g.menu || 'clásico'}`
-      )
+      'Detalle acompanantes:',
+      ...extra.map((g, idx) => `${idx + 1}. ${g.firstName} ${g.lastName} - menu: ${g.menu || 'clasico'}`)
     );
   }
   return lines.join('\n');
 };
 
 export const sendInviteEmail = async (payload) => {
-  console.log('Preparando email con payload:', {
-    primaryGuest: payload.primaryGuest,
-    email: payload.email,
-    phone: payload.phone,
-    extraGuests: payload.extraGuests?.length || 0,
-    attending: payload.attending,
-  });
   const eventConfig = await readEventConfig();
   const subjectBase = eventConfig
     ? `RSVP ${eventConfig.couple?.bride ?? ''} & ${eventConfig.couple?.groom ?? ''}`
     : 'RSVP boda';
   const text = buildEmail(payload, eventConfig);
 
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
-    console.log('--- RSVP (log sin SMTP) ---\n', text);
-    return { sent: false, logged: true };
-  }
+  const emailHost = requiredEnv('EMAIL_HOST');
+  const emailPort = requiredIntEnv('EMAIL_PORT');
+  const emailUser = requiredEnv('EMAIL_USER');
+  const emailPass = requiredEnv('EMAIL_PASS');
+  const emailFrom = requiredEnv('EMAIL_FROM');
 
   const recipient = (payload.email || '').trim();
   if (!recipient) {
-    console.warn('No se envía correo: el invitado no proporcionó email.', payload.primaryGuest);
+    console.warn('No se envia correo: el invitado no proporciono email.', payload.primaryGuest);
     return { sent: false, reason: 'no-email' };
   }
 
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT) || 587,
+    host: emailHost,
+    port: emailPort,
     secure: false,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: emailUser,
+      pass: emailPass,
     },
   });
 
   const meta = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: emailFrom,
     to: recipient,
-    subject: `${subjectBase} (${payload.attending ? 'Sí' : 'No'})`,
-    text: '',
+    subject: `${subjectBase} (${payload.attending ? 'Si' : 'No'})`,
+    text,
   };
 
   try {
@@ -99,23 +92,15 @@ export const sendInviteEmail = async (payload) => {
       },
     ];
   } catch (cardErr) {
-    console.warn('No se pudo generar la tarjeta visual, se envía solo texto.', cardErr.message);
+    console.warn('No se pudo generar la tarjeta visual, se envia solo texto.', cardErr.message);
   }
 
-  try {
-    const info = await transporter.sendMail(meta);
-    console.log('Email enviado OK', {
-      messageId: info.messageId,
-      envelope: info.envelope,
-      to: meta.to,
-      subject: meta.subject,
-    });
-    return { sent: true };
-  } catch (err) {
-    console.error('Error enviando email', {
-      message: err.message,
-      stack: err.stack,
-    });
-    throw err;
-  }
+  const info = await transporter.sendMail(meta);
+  console.log('Email enviado OK', {
+    messageId: info.messageId,
+    envelope: info.envelope,
+    to: meta.to,
+    subject: meta.subject,
+  });
+  return { sent: true };
 };

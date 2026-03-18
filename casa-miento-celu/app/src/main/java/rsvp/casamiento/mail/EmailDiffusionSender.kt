@@ -22,55 +22,37 @@ class EmailDiffusionSender(
         subject: String,
         body: String
     ): Result<Int> = withContext(ioDispatcher) {
+        val smtpUser = AppConfig.EMAIL_USER.trim().lowercase()
         val smtpPass = AppConfig.EMAIL_PASS.replace(" ", "").trim()
-        val authCandidates = buildAuthCandidates()
+        val emailFrom = AppConfig.EMAIL_FROM.trim().lowercase()
 
-        if (smtpPass.isBlank() || authCandidates.isEmpty()) {
+        if (smtpUser.isBlank() || smtpPass.isBlank() || emailFrom.isBlank()) {
             return@withContext Result.failure(
-                IllegalStateException("SMTP incompleto: revisa EMAIL_USER/EMAIL_FROM y EMAIL_PASS.")
+                IllegalStateException("SMTP incompleto: revisa EMAIL_USER, EMAIL_FROM y EMAIL_PASS.")
             )
         }
 
-        var lastError: Throwable? = null
-        var usedUser: String? = null
-
-        for (smtpUser in authCandidates) {
-            val attempt = runCatching {
-                val session = buildSession(smtpUser, smtpPass)
-                recipients.forEach { recipient ->
-                    val message = MimeMessage(session).apply {
-                        setFrom(InternetAddress(smtpUser))
-                        setRecipient(Message.RecipientType.TO, InternetAddress(recipient))
-                        this.subject = subject
-                        setText(body)
-                    }
-                    Transport.send(message)
+        val attempt = runCatching {
+            val session = buildSession(smtpUser, smtpPass)
+            recipients.forEach { recipient ->
+                val message = MimeMessage(session).apply {
+                    setFrom(InternetAddress(emailFrom))
+                    setRecipient(Message.RecipientType.TO, InternetAddress(recipient))
+                    this.subject = subject
+                    setText(body)
                 }
-                usedUser = smtpUser
-                recipients.size
+                Transport.send(message)
             }
-
-            if (attempt.isSuccess) {
-                return@withContext Result.success(attempt.getOrThrow())
-            }
-
-            lastError = attempt.exceptionOrNull()
-            if (!isAuthError(lastError)) {
-                break
-            }
+            recipients.size
         }
 
-        val friendly = humanizeSendError(lastError, authCandidates, usedUser)
-        Result.failure(IllegalStateException(friendly, lastError))
-    }
+        if (attempt.isSuccess) {
+            return@withContext Result.success(attempt.getOrThrow())
+        }
 
-    private fun buildAuthCandidates(): List<String> {
-        val emailUser = AppConfig.EMAIL_USER.trim()
-        val emailFrom = AppConfig.EMAIL_FROM.trim()
-        return listOf(emailUser, emailFrom)
-            .map { it.lowercase() }
-            .filter { it.isNotBlank() && it.contains("@") }
-            .distinct()
+        val lastError = attempt.exceptionOrNull()
+        val friendly = humanizeSendError(lastError, smtpUser)
+        Result.failure(IllegalStateException(friendly, lastError))
     }
 
     private fun buildSession(smtpUser: String, smtpPass: String): Session {
@@ -95,30 +77,17 @@ class EmailDiffusionSender(
         )
     }
 
-    private fun isAuthError(error: Throwable?): Boolean {
-        if (error == null) return false
-        val message = error.message.orEmpty()
-        return message.contains("535", ignoreCase = true) ||
-            message.contains("BadCredentials", ignoreCase = true)
-    }
-
-    private fun humanizeSendError(
-        error: Throwable?,
-        authCandidates: List<String>,
-        usedUser: String?
-    ): String {
+    private fun humanizeSendError(error: Throwable?, smtpUser: String): String {
         val message = error?.message.orEmpty()
-        val usersTried = authCandidates.joinToString(", ")
         return when {
-            message.contains("535", ignoreCase = true) || error is MessagingException &&
-                message.contains("BadCredentials", ignoreCase = true) -> {
-                "SMTP 535 (credenciales invalidas). Usuarios probados: $usersTried. " +
-                    "Usa App Password de Gmail (16 chars sin espacios) de la misma cuenta."
+            message.contains("535", ignoreCase = true) ||
+                (error is MessagingException && message.contains("BadCredentials", ignoreCase = true)) -> {
+                "SMTP 535 (credenciales invalidas). Revisa EMAIL_USER y EMAIL_PASS " +
+                    "(App Password de Gmail, 16 chars sin espacios)."
             }
 
             else -> message.ifBlank {
-                val userInfo = usedUser ?: usersTried.ifBlank { "sin usuario" }
-                "No se pudo enviar el correo (SMTP user: $userInfo)."
+                "No se pudo enviar el correo (SMTP user: $smtpUser)."
             }
         }
     }
