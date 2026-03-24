@@ -3,6 +3,8 @@ import { sendInviteEmail } from './email.js';
 import { isConfigError, sendSafeConfigError } from './config.js';
 import { logOperationalError, mapOperationalError } from './operational-error.js';
 
+const allowedMenus = new Set(['clasico', 'vegetariano', 'celiaco', 'infantil']);
+
 const parseBody = async (req) => {
   if (req.body) return req.body;
   return new Promise((resolve, reject) => {
@@ -23,7 +25,7 @@ const parseBody = async (req) => {
 const withCors = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 };
 
 export default async function handler(req, res) {
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Método no permitido' });
+    res.status(405).json({ error: 'Metodo no permitido' });
     return;
   }
 
@@ -47,12 +49,42 @@ export default async function handler(req, res) {
       return;
     }
 
-    const normalizedExtras = (extraGuests || []).map((g) => ({
-      firstName: (g.firstName || '').trim(),
-      lastName: (g.lastName || '').trim(),
-      menu: g.menu || 'clasico',
-    }));
-    const primaryMenu = primaryGuest.menu || 'clasico';
+    const primaryFirstName = (primaryGuest.firstName || '').trim();
+    const primaryLastName = (primaryGuest.lastName || '').trim();
+    if (!primaryFirstName || !primaryLastName) {
+      res.status(400).json({ error: 'Nombre y apellido son obligatorios.' });
+      return;
+    }
+
+    const normalizeMenu = (value) => {
+      const menu = (value || '').toString().trim().toLowerCase();
+      return allowedMenus.has(menu) ? menu : 'clasico';
+    };
+
+    const normalizedExtras = (extraGuests || [])
+      .slice(0, 12)
+      .map((g) => ({
+        firstName: (g.firstName || '').trim(),
+        lastName: (g.lastName || '').trim(),
+        menu: normalizeMenu(g.menu),
+      }))
+      .filter((g) => g.firstName || g.lastName);
+
+    for (const guest of normalizedExtras) {
+      if (!guest.firstName || !guest.lastName) {
+        res.status(400).json({ error: 'Completa nombre y apellido de cada invitado extra.' });
+        return;
+      }
+    }
+
+    const primaryMenu = normalizeMenu(primaryGuest.menu);
+    const cleanedEmail = (email || '').trim();
+    const cleanedPhone = (phone || '').trim();
+
+    if (cleanedEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanedEmail)) {
+      res.status(400).json({ error: 'Email invalido.' });
+      return;
+    }
 
     await ensureTables();
 
@@ -63,21 +95,21 @@ export default async function handler(req, res) {
       RETURNING *;
     `,
       [
-        primaryGuest.firstName.trim(),
-        primaryGuest.lastName.trim(),
+        primaryFirstName,
+        primaryLastName,
         primaryMenu,
         attending,
-        email || null,
-        phone || null,
+        cleanedEmail || null,
+        cleanedPhone || null,
         JSON.stringify(normalizedExtras),
       ]
     );
 
     await sendInviteEmail({
       attending,
-      email: email || null,
-      phone: phone || null,
-      primaryGuest: { ...primaryGuest, menu: primaryMenu },
+      email: cleanedEmail || null,
+      phone: cleanedPhone || null,
+      primaryGuest: { ...primaryGuest, menu: primaryMenu, firstName: primaryFirstName, lastName: primaryLastName },
       extraGuests: normalizedExtras,
     });
 

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs/promises';
@@ -5,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 import rsvpHandler from '../api/rsvp.js';
 import adminSummaryHandler from '../api/admin-summary.js';
+import adminLoginHandler from '../api/admin-login.js';
+import adminBroadcastHandler from '../api/admin-broadcast.js';
+import photosHandler from '../api/photos.js';
+import adminPhotosHandler from '../api/admin-photos.js';
+import cloudinaryAssetsHandler from '../api/cloudinary-assets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,6 +87,21 @@ const server = http.createServer((req, res) => {
   }
   if (req.url.startsWith('/api/admin-summary')) {
     return adminSummaryHandler(req, res);
+  }
+  if (req.url.startsWith('/api/admin-login')) {
+    return adminLoginHandler(req, res);
+  }
+  if (req.url.startsWith('/api/admin-broadcast')) {
+    return adminBroadcastHandler(req, res);
+  }
+  if (req.url.startsWith('/api/admin-photos')) {
+    return adminPhotosHandler(req, res);
+  }
+  if (req.url.startsWith('/api/cloudinary-assets')) {
+    return cloudinaryAssetsHandler(req, res);
+  }
+  if (req.url.startsWith('/api/photos')) {
+    return photosHandler(req, res);
   }
 
   return serveStatic(req, res);

@@ -66,7 +66,9 @@ onUnmounted(() => {
 .frame {
   position: relative;
   width: 100%;
-  height: 320px;
+  aspect-ratio: 16 / 9;
+  max-height: 460px;
+  min-height: 220px;
   border-radius: 16px;
   overflow: hidden;
   margin-top: 12px;
@@ -75,7 +77,8 @@ onUnmounted(() => {
 .slide {
   position: absolute;
   inset: 0;
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
   opacity: 0;
   transform: scale(1.04);
@@ -101,22 +104,28 @@ onUnmounted(() => {
 }
 
 .dots button {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(224, 180, 164, 0.8);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
   padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .dots button.active {
-  background: #e0b4a4;
-  border-color: #e0b4a4;
+  background: #d9846c;
+  border-color: #d9846c;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(217, 132, 108, 0.28);
 }
 
 @media (max-width: 720px) {
   .frame {
-    height: 240px;
+    aspect-ratio: 4 / 3;
+    max-height: 320px;
+    min-height: 200px;
   }
 }
 </style>

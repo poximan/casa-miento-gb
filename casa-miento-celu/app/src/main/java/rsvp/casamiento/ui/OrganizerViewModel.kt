@@ -1,6 +1,7 @@
 package rsvp.casamiento.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -8,10 +9,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import rsvp.casamiento.data.AdminSummary
 import rsvp.casamiento.data.NeonRsvpRepository
 import rsvp.casamiento.mail.EmailDiffusionSender
 import rsvp.casamiento.model.OrganizerBootstrapCache
 import rsvp.casamiento.model.RsvpRecord
+import rsvp.casamiento.session.SessionManager
 
 enum class RecipientFilter {
     YES,
@@ -25,7 +28,8 @@ data class OrganizerUiState(
     val records: List<RsvpRecord> = emptyList(),
     val errorMessage: String? = null,
     val sendMessage: String? = null,
-    val lastSyncEpochMs: Long? = null
+    val lastSyncEpochMs: Long? = null,
+    val authError: Boolean = false
 ) {
     val yesCount: Int
         get() = records.count { it.attending }
@@ -35,10 +39,11 @@ data class OrganizerUiState(
         get() = records.sumOf { it.personCount }
 }
 
-class OrganizerViewModel : ViewModel() {
-
-    private val repository = NeonRsvpRepository()
-    private val emailSender = EmailDiffusionSender()
+class OrganizerViewModel(
+    private val repository: NeonRsvpRepository,
+    private val emailSender: EmailDiffusionSender,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrganizerUiState(isLoading = true))
     val uiState: StateFlow<OrganizerUiState> = _uiState.asStateFlow()
@@ -50,36 +55,62 @@ class OrganizerViewModel : ViewModel() {
                 isLoading = false,
                 records = preload.records,
                 errorMessage = preload.errorMessage,
-                lastSyncEpochMs = System.currentTimeMillis()
+                lastSyncEpochMs = System.currentTimeMillis(),
+                authError = preload.errorMessage?.contains("token", ignoreCase = true) == true
             )
         } else {
             loadData()
         }
     }
 
+    fun setToken(token: String) {
+        sessionManager.saveToken(token)
+    }
+
+    fun clearToken() {
+        sessionManager.clear()
+        _uiState.update { it.copy(authError = true, errorMessage = "Sesión expirada o no iniciada.") }
+    }
+
     fun loadData() {
+        val token = sessionManager.token().orEmpty()
+        if (token.isBlank()) {
+            _uiState.update { it.copy(isLoading = false, authError = true, errorMessage = "Falta token de acceso.") }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val result = runCatching { repository.fetchRsvps() }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, authError = false) }
+            val result = runCatching { repository.fetchSummary(token) }
             result.fold(
-                onSuccess = { records ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            records = records,
-                            errorMessage = null,
-                            lastSyncEpochMs = System.currentTimeMillis()
-                        )
-                    }
+                onSuccess = { summary ->
+                    applySummary(summary)
                 },
                 onFailure = { error ->
+                    val authFailed = error.message?.contains("No autorizado", ignoreCase = true) == true
+                    if (authFailed) {
+                        clearToken()
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "No se pudo conectar con Neon."
+                            errorMessage = error.message ?: "No se pudo conectar con el backend.",
+                            authError = authFailed
                         )
                     }
                 }
+            )
+        }
+    }
+
+    private fun applySummary(summary: AdminSummary) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                records = summary.records,
+                errorMessage = null,
+                lastSyncEpochMs = System.currentTimeMillis(),
+                authError = false
             )
         }
     }
@@ -100,31 +131,42 @@ class OrganizerViewModel : ViewModel() {
     fun recipientCountFor(filter: RecipientFilter): Int = recipientsFor(filter).size
 
     fun sendBroadcast(filter: RecipientFilter, subject: String, body: String) {
-        val recipients = recipientsFor(filter)
-        if (recipients.isEmpty()) {
-            _uiState.update {
-                it.copy(sendMessage = "No hay destinatarios validos para el filtro seleccionado.")
-            }
+        val token = sessionManager.token().orEmpty()
+        if (token.isBlank()) {
+            _uiState.update { it.copy(sendMessage = "Sesión expirada. Inicia sesión nuevamente.") }
+            return
+        }
+
+        if (subject.isBlank() || body.isBlank()) {
+            _uiState.update { it.copy(sendMessage = "Asunto y mensaje son obligatorios.") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingEmail = true, sendMessage = null) }
-            val result = emailSender.sendBroadcast(recipients = recipients, subject = subject, body = body)
+            val result = emailSender.sendBroadcast(
+                token = token,
+                filter = filter,
+                subject = subject,
+                body = body
+            )
             result.fold(
                 onSuccess = { sent ->
                     _uiState.update {
                         it.copy(
                             isSendingEmail = false,
-                            sendMessage = "Difusion enviada a $sent destinatarios."
+                            sendMessage = "Difusión enviada a $sent destinatarios."
                         )
                     }
                 },
                 onFailure = { error ->
+                    val authFailed = error.message?.contains("No autorizado", ignoreCase = true) == true
+                    if (authFailed) clearToken()
                     _uiState.update {
                         it.copy(
                             isSendingEmail = false,
-                            sendMessage = "Error de envio: ${error.message ?: "desconocido"}"
+                            sendMessage = "Error de envío: ${error.message ?: "desconocido"}",
+                            authError = authFailed
                         )
                     }
                 }
@@ -151,5 +193,19 @@ class OrganizerViewModel : ViewModel() {
     private fun bump(map: MutableMap<String, Int>, rawMenu: String) {
         val key = rawMenu.trim().ifBlank { "sin menu" }.lowercase(Locale.ROOT)
         map[key] = (map[key] ?: 0) + 1
+    }
+
+    companion object {
+        fun factory(sessionManager: SessionManager): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return OrganizerViewModel(
+                        repository = NeonRsvpRepository(),
+                        emailSender = EmailDiffusionSender(),
+                        sessionManager = sessionManager
+                    ) as T
+                }
+            }
     }
 }

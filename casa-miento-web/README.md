@@ -11,34 +11,17 @@ cp .env.example .env
 
 2. Completa en `.env`:
 - `DB_URL`
-- `ADMIN_TOKEN`
+- `DB_SSL_REJECT_UNAUTHORIZED` (true para certs validos)
+- `ADMIN_USER` / `ADMIN_PASS`
+- `ADMIN_JWT_SECRET` (clave larga para firmar sesiones)
 - `SERVER_PORT`
-- `EMAIL_HOST`
-- `EMAIL_PORT`
-- `EMAIL_USER`
-- `EMAIL_PASS`
-- `EMAIL_FROM`
+- `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_USER` / `EMAIL_PASS` / `EMAIL_FROM`
+- CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET (unsigned)
+- CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET / CLOUDINARY_FOLDER (listar/eliminar assets)
 
-3. Instala dependencias:
-```bash
-npm install
-```
+## Fotos del carrusel (nuevo flujo)
 
-4. Ejecuta local:
-```bash
-npm run desplegar-local
-```
+- Se usa Cloudinary para subir y gestionar imagenes desde el panel admin; cada publicacion crea una fila con hasta 8 URLs.
+- Configura `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET` (unsigned) y `CLOUDINARY_API_KEY/SECRET/FOLDER` para listar y eliminar assets del folder.
+- En el panel admin podes subir imagenes, seleccionar de lo existente o borrarlas de Cloudinary; al publicar se guarda en la base. El carrusel publico y la app movil consumen `/api/photos` (todas las publicaciones agregadas).
 
-5. Deploy:
-```bash
-npm run desplegar
-```
-
-## API
-
-- `POST /api/rsvp`: guarda respuesta y envia email.
-- `GET /api/admin-summary`: requiere header `x-admin-token`.
-
-## Nota importante
-
-Si falta configuracion sensible del servidor, las APIs devuelven error seguro `CONFIG_MISSING`.

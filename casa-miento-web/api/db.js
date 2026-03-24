@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
-import { requiredEnv } from './config.js';
+import { booleanEnv, requiredEnv } from './config.js';
 
 const pool = new Pool({
   connectionString: requiredEnv('DB_URL'),
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: booleanEnv('DB_SSL_REJECT_UNAUTHORIZED', true) },
 });
 
 export const ensureTables = async () => {
@@ -22,6 +22,16 @@ export const ensureTables = async () => {
     );
   `);
   await pool.query(`ALTER TABLE rsvps ADD COLUMN IF NOT EXISTS primary_menu TEXT DEFAULT 'clasico';`);
+};
+
+export const ensurePhotosTable = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS carousel_photos (
+      id SERIAL PRIMARY KEY,
+      urls TEXT[] NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 };
 
 export default pool;

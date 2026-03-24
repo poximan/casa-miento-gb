@@ -2,7 +2,7 @@
   <div class="card rsvp">
     <div class="header">
       <div class="badge">Confirmar asistencia</div>
-      <p>Contanos si podes venir y quienes te acompanan. Podes agregar tantos invitados como necesites.</p>
+      <p>Contanos si podés venir y quiénes te acompañan. Podés agregar tantos invitados como necesites.</p>
     </div>
 
     <div class="attending-toggle">
@@ -12,7 +12,7 @@
         type="button"
         @click="form.attending = true"
       >
-        Si, voy
+        Sí, voy
       </button>
       <button
         class="ghost-btn"
@@ -26,6 +26,20 @@
 
     <div class="grid-two">
       <div class="field">
+        <label>Buscar en lista de invitados (opcional)</label>
+        <input
+          v-model="suggestionQuery"
+          list="guest-suggestions"
+          type="text"
+          placeholder="Escribí un nombre y elegilo para autocompletar"
+          @change="applySuggestion"
+        />
+        <datalist id="guest-suggestions">
+          <option v-for="guest in suggestions" :key="guest" :value="guest" />
+        </datalist>
+        <p class="hint">Solo es una guía. Si no estás en la lista, podés completar igual.</p>
+      </div>
+      <div class="field">
         <label>Nombre</label>
         <input v-model="form.primaryFirstName" type="text" placeholder="Tu nombre" />
       </div>
@@ -34,11 +48,11 @@
         <input v-model="form.primaryLastName" type="text" placeholder="Tu apellido" />
       </div>
       <div class="field">
-        <label>Menu titular</label>
+        <label>Menú titular</label>
         <select v-model="form.primaryMenu">
-          <option value="clasico">Clasico</option>
+          <option value="clasico">Clásico</option>
           <option value="vegetariano">Vegetariano</option>
-          <option value="celiaco">Celiaco</option>
+          <option value="celiaco">Celíaco</option>
           <option value="infantil">Infantil</option>
         </select>
       </div>
@@ -47,7 +61,7 @@
         <input v-model="form.email" type="email" placeholder="correo@ejemplo.com" />
       </div>
       <div class="field">
-        <label>Telefono (opcional)</label>
+        <label>Teléfono (opcional)</label>
         <input v-model="form.phone" type="tel" placeholder="Solo por si necesitamos contactarte" />
       </div>
     </div>
@@ -57,9 +71,9 @@
         <h3>Invitados adicionales</h3>
         <button type="button" class="ghost-btn" @click="addGuest">Agregar invitado</button>
       </div>
-      <p class="small">Cada invitado extra puede indicar menu especial.</p>
+      <p class="small">Cada invitado extra puede indicar menú especial.</p>
 
-      <div v-if="!form.extraGuests.length" class="empty">Todavia no agregaste invitados extra.</div>
+      <div v-if="!form.extraGuests.length" class="empty">Todavía no agregaste invitados extra.</div>
 
       <div v-for="(guest, index) in form.extraGuests" :key="index" class="guest card">
         <div class="guest-head">
@@ -76,11 +90,11 @@
             <input v-model="guest.lastName" type="text" placeholder="Apellido" />
           </div>
           <div class="field">
-            <label>Menu</label>
+            <label>Menú</label>
             <select v-model="guest.menu">
-              <option value="clasico">Clasico</option>
+              <option value="clasico">Clásico</option>
               <option value="vegetariano">Vegetariano</option>
-              <option value="celiaco">Celiaco</option>
+              <option value="celiaco">Celíaco</option>
               <option value="infantil">Infantil</option>
             </select>
           </div>
@@ -90,7 +104,7 @@
 
     <div class="submit">
       <button class="primary-btn" :disabled="isSubmitting" @click="submit">
-        {{ isSubmitting ? 'Enviando...' : 'Confirmar invitacion' }}
+        {{ isSubmitting ? 'Enviando...' : 'Confirmar invitación' }}
       </button>
       <div v-if="message" class="message" :class="message.kind">{{ message.text }}</div>
     </div>
@@ -105,11 +119,18 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import AppModal from './AppModal.vue';
 import { AppError } from '../domain/AppError.js';
 import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
 import { useErrorModal } from '../composables/useErrorModal.js';
+
+const props = defineProps({
+  suggestedGuests: {
+    type: Array,
+    default: () => [],
+  },
+});
 
 const emit = defineEmits(['submitted']);
 const { modal, openForError, closeModal } = useErrorModal();
@@ -124,8 +145,15 @@ const form = reactive({
   extraGuests: [],
 });
 
+const suggestionQuery = ref('');
 const isSubmitting = ref(false);
 const message = ref(null);
+
+const suggestions = computed(() =>
+  (props.suggestedGuests || [])
+    .map((s) => s?.toString().trim())
+    .filter((s) => s)
+);
 
 const addGuest = () => {
   form.extraGuests.push({
@@ -137,6 +165,14 @@ const addGuest = () => {
 
 const removeGuest = (index) => {
   form.extraGuests.splice(index, 1);
+};
+
+const applySuggestion = () => {
+  const value = suggestionQuery.value.trim();
+  if (!value) return;
+  const parts = value.split(' ');
+  form.primaryFirstName = parts.shift() || '';
+  form.primaryLastName = parts.join(' ') || '';
 };
 
 const validate = () => {
@@ -196,6 +232,7 @@ const submit = async () => {
     form.phone = '';
     form.extraGuests = [];
     form.attending = true;
+    suggestionQuery.value = '';
   } catch (errorCaught) {
     const mapped = errorCaught instanceof AppError
       ? errorCaught
@@ -244,6 +281,12 @@ const submit = async () => {
 
 label {
   font-size: 14px;
+  color: var(--muted);
+}
+
+.hint {
+  margin: 2px 0 0;
+  font-size: 12px;
   color: var(--muted);
 }
 

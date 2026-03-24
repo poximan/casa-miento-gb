@@ -1,0 +1,25 @@
+este es un proyecto para gestion de lista de confirmacion de invitados para un casamiento, y sus opciones accesorias.
+esta solucion se penso para dos modos de trabajo:
+
+invitado: la persona se conecta sin login y por lo tanto se trata implicamente del perfil de invitado
+en el contexto de la fiesta, es decir es un potencial invitado a la fiesta a celebrarse mas adelente.
+en ese sentido el inivitado tendra que poder acceder a la version web sin loguearse y confirmar por si o por no
+si asistira al evento al que fue invitado. en cualquier de los casos le llegara un email de confirmacion
+con la decision que tomo y fin.
+
+organizador: la persona que oficiara de organizador del evento podra utilizar la version web (previo filtro via login)
+para ver datos generales sobre como vienen las confirmacionas y confgurar tambien las imagenes que se veran
+en el carrousel de fotos del modo invitado, entre otras cosas.
+
+este proyecto consta de una parte web resposiva (desktop y movil) y otra movil android.
+
+la parte web ya fue descrita en funcion de los modos de trabajo. ademas debe saberse que la version movil
+solo correra implicitamente el modo organizador.
+
+el proyecto debe desarrollarse sin estrategias de fallback, por ejemplo
+- un cambio en el modelo de base de datos implicara destruir toda la base de datos, no hay retrocompatibilidad.
+- la falta de una variable de entorno debe reportarte por consolo y ventana emergente
+y luego explotar (si no fuera posible continuar sin ese dato). nada de datos default.
+
+la condificacion de los archivo debe ser UTF-8. todos los comentarios deben estar en castellano sin tildes.
+nunca debera hacerse build ni run. solo modificacion de codigo.

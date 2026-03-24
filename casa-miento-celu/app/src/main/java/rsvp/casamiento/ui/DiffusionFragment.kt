@@ -19,7 +19,9 @@ class DiffusionFragment : Fragment() {
 
     private var _binding: FragmentDiffusionBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: OrganizerViewModel by activityViewModels()
+    private val viewModel: OrganizerViewModel by activityViewModels {
+        (requireActivity() as rsvp.casamiento.MainActivity).viewModelFactory
+    }
     private var lockCheckboxes = false
 
     override fun onCreateView(
@@ -86,9 +88,13 @@ class DiffusionFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     binding.sendingProgress.isVisible = state.isSendingEmail
-                    binding.sendButton.isEnabled = !state.isSendingEmail
+                    binding.sendButton.isEnabled = !state.isSendingEmail && !state.authError
                     binding.sendResultText.isVisible = !state.sendMessage.isNullOrBlank()
                     binding.sendResultText.text = state.sendMessage
+                    if (state.authError) {
+                        binding.sendResultText.isVisible = true
+                        binding.sendResultText.text = getString(R.string.session_expired)
+                    }
                     updateRecipientsLabel()
                 }
             }

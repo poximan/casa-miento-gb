@@ -11,8 +11,10 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.51",
     "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^8.0.2",
     "pg": "^8.11.3",
+    "vue-router": "^4.3.0",
     "vue": "^3.4.21"
   },
   "devDependencies": {

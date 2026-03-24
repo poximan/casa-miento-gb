@@ -14,6 +14,7 @@ import rsvp.casamiento.config.ConfigurationValidationService
 import rsvp.casamiento.data.NeonRsvpRepository
 import rsvp.casamiento.databinding.ActivitySplashBinding
 import rsvp.casamiento.model.OrganizerBootstrapCache
+import rsvp.casamiento.session.SessionManager
 import rsvp.casamiento.ui.feedback.ConfigIssueFeedbackService
 import rsvp.casamiento.ui.feedback.SnackbarConfigIssueFeedbackService
 
@@ -22,12 +23,15 @@ class SplashActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySplashBinding
     private val configValidationService = ConfigurationValidationService(AppConfigurationValueProvider())
     private lateinit var configFeedbackService: ConfigIssueFeedbackService
+    private lateinit var sessionManager: SessionManager
+    private val repository = NeonRsvpRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
         configFeedbackService = SnackbarConfigIssueFeedbackService(this)
+        sessionManager = SessionManager(this)
 
         val missingKeys = configValidationService.findMissingKeys()
         if (missingKeys.isNotEmpty()) {
@@ -37,15 +41,27 @@ class SplashActivity : AppCompatActivity() {
             return
         }
 
-        bootstrap()
+        val token = sessionManager.token()
+        if (token.isNullOrBlank()) {
+            goToLogin("Iniciá sesión para continuar.")
+            return
+        }
+
+        bootstrap(token)
     }
 
-    private fun bootstrap() {
+    private fun goToLogin(reason: String? = null) {
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.putExtra(LoginActivity.EXTRA_REASON, reason.orEmpty())
+        startActivity(intent)
+        finish()
+    }
+
+    private fun bootstrap(token: String) {
         lifecycleScope.launch {
             val startMs = SystemClock.elapsedRealtime()
-            val repository = NeonRsvpRepository()
             val fetchJob = async(Dispatchers.IO) {
-                runCatching { repository.fetchRsvps() }
+                runCatching { repository.fetchSummary(token) }
             }
 
             while (!fetchJob.isCompleted) {
@@ -58,23 +74,32 @@ class SplashActivity : AppCompatActivity() {
 
             val result = fetchJob.await()
             result.fold(
-                onSuccess = { records ->
-                    OrganizerBootstrapCache.save(records = records, errorMessage = null)
+                onSuccess = { summary ->
+                    OrganizerBootstrapCache.save(records = summary.records, errorMessage = null)
+                    binding.splashProgress.progress = 100
+                    binding.splashProgressLabel.text = getString(R.string.splash_loading, 100)
+                    delay(250)
+                    startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                    finish()
                 },
                 onFailure = { error ->
-                    OrganizerBootstrapCache.save(
-                        records = emptyList(),
-                        errorMessage = error.message ?: "No se pudo conectar con Neon."
-                    )
+                    val unauthorized = error.message?.contains("No autorizado", ignoreCase = true) == true
+                    if (unauthorized) {
+                        sessionManager.clear()
+                        goToLogin("Sesión expirada. Volvé a iniciar sesión.")
+                    } else {
+                        OrganizerBootstrapCache.save(
+                            records = emptyList(),
+                            errorMessage = error.message ?: "No se pudo conectar con el backend."
+                        )
+                        binding.splashProgress.progress = 100
+                        binding.splashProgressLabel.text = getString(R.string.splash_loading, 100)
+                        delay(250)
+                        startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                        finish()
+                    }
                 }
             )
-
-            binding.splashProgress.progress = 100
-            binding.splashProgressLabel.text = getString(R.string.splash_loading, 100)
-            delay(250)
-
-            startActivity(Intent(this@SplashActivity, MainActivity::class.java))
-            finish()
         }
     }
 }

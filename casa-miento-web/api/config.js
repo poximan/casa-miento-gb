@@ -25,6 +25,15 @@ export const requiredIntEnv = (name) => {
   return value;
 };
 
+export const booleanEnv = (name, defaultValue = false) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || raw === '') return defaultValue;
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  throw new ConfigError(name);
+};
+
 export const isConfigError = (error) => error?.code === 'CONFIG_MISSING';
 
 export const sendSafeConfigError = (res) => {

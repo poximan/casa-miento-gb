@@ -1,16 +1,24 @@
 package rsvp.casamiento
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.MotionEvent
 import androidx.activity.addCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlin.math.abs
 import kotlin.math.max
+import kotlinx.coroutines.launch
 import rsvp.casamiento.databinding.ActivityMainBinding
+import rsvp.casamiento.session.SessionManager
 import rsvp.casamiento.ui.ConfirmedListFragment
 import rsvp.casamiento.ui.DiffusionFragment
+import rsvp.casamiento.ui.OrganizerViewModel
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,6 +27,9 @@ class MainActivity : AppCompatActivity() {
     private var swipeStartX = 0f
     private var swipeStartY = 0f
     private var globalSwipeHandled = false
+    private val sessionManager by lazy { SessionManager(this) }
+    val viewModelFactory by lazy { OrganizerViewModel.factory(sessionManager) }
+    private val viewModel: OrganizerViewModel by viewModels { viewModelFactory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +70,16 @@ class MainActivity : AppCompatActivity() {
                 binding.drawerHandle.alpha = 1f - (slideOffset * 0.65f)
             }
         })
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    if (state.authError) {
+                        goToLogin()
+                    }
+                }
+            }
+        }
 
         onBackPressedDispatcher.addCallback(this) {
             when {
@@ -186,6 +207,11 @@ class MainActivity : AppCompatActivity() {
                 edgeSizeField.setInt(leftDragger, targetEdge)
             }
         }
+    }
+
+    private fun goToLogin() {
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
     }
 
     private enum class OrganizerScreen {

@@ -1,9 +1,8 @@
 import fs from 'node:fs/promises';
-import nodemailer from 'nodemailer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateInviteCard } from './invite-card.js';
-import { requiredEnv, requiredIntEnv } from './config.js';
+import { generateInviteCard, generateFallbackCard } from './invite-card.js';
+import { fromAddress, buildTransport } from './mailer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,11 +52,7 @@ export const sendInviteEmail = async (payload) => {
     : 'RSVP boda';
   const text = buildEmail(payload, eventConfig);
 
-  const emailHost = requiredEnv('EMAIL_HOST');
-  const emailPort = requiredIntEnv('EMAIL_PORT');
-  const emailUser = requiredEnv('EMAIL_USER');
-  const emailPass = requiredEnv('EMAIL_PASS');
-  const emailFrom = requiredEnv('EMAIL_FROM');
+  const emailFrom = fromAddress();
 
   const recipient = (payload.email || '').trim();
   if (!recipient) {
@@ -65,15 +60,7 @@ export const sendInviteEmail = async (payload) => {
     return { sent: false, reason: 'no-email' };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: emailHost,
-    port: emailPort,
-    secure: false,
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-  });
+  const transporter = buildTransport();
 
   const meta = {
     from: emailFrom,
@@ -92,7 +79,19 @@ export const sendInviteEmail = async (payload) => {
       },
     ];
   } catch (cardErr) {
-    console.warn('No se pudo generar la tarjeta visual, se envia solo texto.', cardErr.message);
+    try {
+      const fallback = await generateFallbackCard({ payload, eventConfig });
+      meta.attachments = [
+        {
+          filename: fallback.filename,
+          content: fallback.buffer,
+          contentType: fallback.contentType,
+        },
+      ];
+      console.warn('Se uso tarjeta de respaldo por error de generacion.', cardErr.message);
+    } catch (fallbackErr) {
+      console.warn('No se pudo generar la tarjeta visual ni la de respaldo, se envia solo texto.', fallbackErr.message);
+    }
   }
 
   const info = await transporter.sendMail(meta);

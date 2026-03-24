@@ -24,7 +24,9 @@ class ConfirmedListFragment : Fragment() {
 
     private var _binding: FragmentConfirmedListBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: OrganizerViewModel by activityViewModels()
+    private val viewModel: OrganizerViewModel by activityViewModels {
+        (requireActivity() as rsvp.casamiento.MainActivity).viewModelFactory
+    }
     private lateinit var adapter: RsvpAdapter
 
     override fun onCreateView(

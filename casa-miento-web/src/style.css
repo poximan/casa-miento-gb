@@ -105,6 +105,14 @@ button {
   background: rgba(224, 180, 164, 0.08);
 }
 
+.error {
+  color: #ad2b42;
+}
+
+.success {
+  color: #197247;
+}
+
 .section {
   margin-top: 32px;
   display: grid;

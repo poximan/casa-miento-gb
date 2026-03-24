@@ -1,134 +1,168 @@
 <template>
   <div class="card admin">
-    <div class="badge">Panel organizador</div>
-
-    <div v-if="!loggedIn" class="login">
-      <p>Acceso privado para ver confirmaciones.</p>
-      <div class="grid-two">
-        <div class="field">
-          <label>Usuario</label>
-          <input v-model="username" type="text" autocomplete="username" />
-        </div>
-        <div class="field">
-          <label>Clave</label>
-          <input v-model="password" type="password" autocomplete="current-password" />
-        </div>
-      </div>
-      <button class="primary-btn" @click="login">Ingresar</button>
-      <div v-if="panelError" class="error">{{ panelError }}</div>
-    </div>
-
-    <div v-else class="summary">
-      <div class="summary-head">
-        <h3>Resumen de respuestas</h3>
-        <div class="actions">
-          <button class="ghost-btn" @click="logout">Salir</button>
-          <button class="primary-btn" @click="fetchSummary()" :disabled="loading">
-            {{ loading ? 'Actualizando...' : 'Refrescar' }}
-          </button>
-        </div>
-      </div>
-
-      <div v-if="panelError" class="error">{{ panelError }}</div>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="label">Si</div>
-          <div class="value">{{ summary.yes }}</div>
-        </div>
-        <div class="stat">
-          <div class="label">No</div>
-          <div class="value">{{ summary.no }}</div>
-        </div>
-        <div class="stat">
-          <div class="label">Total personas</div>
-          <div class="value">{{ summary.people }}</div>
-        </div>
-      </div>
-
-      <p class="muted">Pendientes no se calculan porque no hay base previa de invitados.</p>
-
-      <div class="table">
-        <div class="table-head">
-          <button class="head-btn" @click="setSort('name')">
-            Nombre
-            <span class="sort">{{ sortIndicator('name') }}</span>
-          </button>
-          <button class="head-btn" @click="setSort('attending')">
-            Estado
-            <span class="sort">{{ sortIndicator('attending') }}</span>
-          </button>
-          <button class="head-btn" @click="setSort('primary_menu')">
-            Menu
-            <span class="sort">{{ sortIndicator('primary_menu') }}</span>
-          </button>
-          <button class="head-btn" @click="setSort('created_at')">
-            Fecha
-            <span class="sort">{{ sortIndicator('created_at') }}</span>
-          </button>
-        </div>
-
-        <div v-if="!summary.rows.length" class="empty">Sin respuestas aun.</div>
-
-        <template v-for="row in sortedRows" :key="row.id">
-          <div class="table-row parent">
-            <span>{{ row.primary_first_name }} {{ row.primary_last_name }}</span>
-            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
-            <span>{{ formatMenu(row.primary_menu) }}</span>
-            <span>{{ formatDate(row.created_at) }}</span>
-          </div>
-          <div
-            v-for="(guest, idx) in row.extra_guests"
-            :key="`${row.id}-extra-${idx}`"
-            class="table-row child"
-          >
-            <span class="child-name">
-              <span class="child-prefix">|-</span>
-              {{ guest.firstName }} {{ guest.lastName }}
-              <span class="child-tag">Invitado extra</span>
-            </span>
-            <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
-            <span>{{ formatMenu(guest.menu) }}</span>
-            <span>{{ formatDate(row.created_at) }}</span>
-          </div>
-        </template>
+    <div class="header">
+      <div class="badge">Resumen de respuestas</div>
+      <div class="actions">
+        <button class="primary-btn" type="button" @click="fetchSummary" :disabled="loading">
+          {{ loading ? 'Actualizando...' : 'Refrescar' }}
+        </button>
       </div>
     </div>
 
-    <AppModal
-      :open="modal.open"
-      :title="modal.title"
-      :detail="modal.detail"
-      @close="closeModal"
-    />
+    <div v-if="panelError" class="error">{{ panelError }}</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Si</div>
+        <div class="value">{{ summary.yes }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">No</div>
+        <div class="value">{{ summary.no }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total personas</div>
+        <div class="value">{{ summary.people }}</div>
+      </div>
+    </div>
+
+    <div class="table">
+      <div class="table-head">
+        <button class="head-btn" @click="setSort('name')">
+          Nombre
+          <span class="sort">{{ sortIndicator('name') }}</span>
+        </button>
+        <button class="head-btn" @click="setSort('attending')">
+          Estado
+          <span class="sort">{{ sortIndicator('attending') }}</span>
+        </button>
+        <button class="head-btn" @click="setSort('primary_menu')">
+          Menu
+          <span class="sort">{{ sortIndicator('primary_menu') }}</span>
+        </button>
+        <button class="head-btn" @click="setSort('created_at')">
+          Fecha
+          <span class="sort">{{ sortIndicator('created_at') }}</span>
+        </button>
+      </div>
+
+      <div v-if="!summary.rows.length" class="empty">Sin respuestas aun.</div>
+
+      <template v-for="row in sortedRows" :key="row.id">
+        <div class="table-row parent">
+          <span>{{ row.primary_first_name }} {{ row.primary_last_name }}</span>
+          <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
+          <span>{{ formatMenu(row.primary_menu) }}</span>
+          <span>{{ formatDate(row.created_at) }}</span>
+        </div>
+        <div
+          v-for="(guest, idx) in row.extra_guests"
+          :key="`${row.id}-extra-${idx}`"
+          class="table-row child"
+        >
+          <span class="child-name">
+            <span class="child-prefix">|-</span>
+            {{ guest.firstName }} {{ guest.lastName }}
+            <span class="child-tag">Invitado extra</span>
+          </span>
+          <span :class="row.attending ? 'yes' : 'no'">{{ row.attending ? 'Si' : 'No' }}</span>
+          <span>{{ formatMenu(guest.menu) }}</span>
+          <span>{{ formatDate(row.created_at) }}</span>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <div class="card admin photos-card">
+    <div class="header">
+      <div class="badge">Fotos del carrusel</div>
+    </div>
+
+    <div class="picker-row inline">
+      <button class="primary-btn" type="button" @click="triggerUpload" :disabled="uploading || uploaderUnavailable">
+        {{ uploading ? 'Subiendo...' : 'Seleccionar imagenes' }}
+      </button>
+      <button class="ghost-btn" type="button" @click="clearSelection">Borrar seleccionadas</button>
+      <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFiles" />
+    </div>
+
+    <div class="cloud-block">
+      <div class="cloud-header">
+        <div class="selected-title">Imagenes preparadas para publicar</div>
+        <div class="cloud-actions">
+      <button class="primary-btn ghost" type="button" @click="addSelectedFromCloud" :disabled="!selectedCloud.size">
+        Agregar seleccionadas
+      </button>
+      <button class="ghost-btn danger" type="button" @click="deleteSelectedFromCloud" :disabled="!selectedCloud.size">
+        Eliminar de Cloudinary
+      </button>
+        </div>
+      </div>
+
+      <div class="chips" v-if="photosPreview.length">
+        <span class="chip" v-for="url in photosPreview" :key="url">{{ url }}</span>
+      </div>
+
+      <div class="assets-list">
+        <div v-if="cloudLoading" class="muted small">Cargando assets...</div>
+        <div v-else-if="cloudError" class="error">{{ cloudError }}</div>
+        <div v-else-if="!cloudAssets.length" class="muted small">No hay imagenes en Cloudinary.</div>
+        <div v-else class="asset-grid">
+          <label class="asset-card" v-for="asset in cloudAssets" :key="asset.publicId">
+            <input
+              type="checkbox"
+              :value="asset.publicId"
+              :checked="selectedCloud.has(asset.publicId)"
+              @change="toggleCloudSelection(asset.publicId)"
+            />
+            <img :src="asset.url" alt="" />
+            <span class="asset-id">{{ asset.publicId }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions solo">
+      <button class="primary-btn" type="button" @click="savePhotos" :disabled="savingPhotos || !photosDraft.trim()">
+        {{ savingPhotos ? 'Guardando...' : 'Publicar imagenes' }}
+      </button>
+    </div>
+
+    <div v-if="photosError" class="error">{{ photosError }}</div>
+    <div v-if="photosSaved" class="success">Lista de fotos actualizada ({{ photosPreview.length }} items).</div>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
-import AppModal from './AppModal.vue';
-import { AppError } from '../domain/AppError.js';
-import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
-import { useErrorModal } from '../composables/useErrorModal.js';
+import { computed, reactive, ref, watch } from 'vue';
 
 const props = defineProps({
-  adminUser: {
+  token: {
     type: String,
-    default: '',
-  },
-  adminPassword: {
-    type: String,
-    default: '',
+    required: true,
   },
 });
 
-const { modal, openForError, closeModal } = useErrorModal();
+const emit = defineEmits(['logout']);
 
-const username = ref(props.adminUser || '');
-const password = ref(props.adminPassword || '');
 const panelError = ref('');
 const loading = ref(false);
-const loggedIn = ref(false);
+
+const photosError = ref('');
+const photosSaved = ref(false);
+const savingPhotos = ref(false);
+const photosDraft = ref('');
+const uploading = ref(false);
+const uploaderUnavailable = ref(false);
+const fileInput = ref(null);
+const cloudinaryConfig = reactive({
+  cloudName: '',
+  uploadPreset: '',
+});
+const cloudAssets = ref([]);
+const cloudLoading = ref(false);
+const cloudError = ref('');
+const selectedCloud = ref(new Set());
 
 const summary = reactive({
   yes: 0,
@@ -141,6 +175,33 @@ const sortState = reactive({
   key: 'created_at',
   dir: 'desc',
 });
+
+watch(
+  () => props.token,
+  (value) => {
+    if (value) {
+      console.info('[admin-panel] Token valido recibido, sincronizando datos.');
+    } else {
+      console.info('[admin-panel] Token ausente, limpiando panel.');
+    }
+    if (value) {
+      fetchSummary();
+      loadCloudData();
+      resetSelection();
+    } else {
+      summary.rows = [];
+      summary.people = 0;
+      summary.yes = 0;
+      summary.no = 0;
+      photosDraft.value = '';
+      photosError.value = '';
+      photosSaved.value = false;
+      cloudAssets.value = [];
+      selectedCloud.value = new Set();
+    }
+  },
+  { immediate: true }
+);
 
 const valueForSort = (row, key) => {
   switch (key) {
@@ -183,45 +244,247 @@ const sortIndicator = (key) => {
   return sortState.dir === 'asc' ? '^' : 'v';
 };
 
-const getToken = () => `${username.value.trim()}:${password.value}`;
+const photosPreview = computed(() =>
+  photosDraft.value
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l)
+);
 
-const login = async () => {
-  if (!username.value.trim() || !password.value) {
-    panelError.value = 'Completa usuario y clave.';
+async function loadCloudData() {
+  console.info('[admin-panel] loadCloudData() start', {
+    tokenPresent: Boolean(props.token),
+    tokenSnippet: props.token ? String(props.token).slice(0, 12) : '(none)',
+  });
+  photosError.value = '';
+  cloudError.value = '';
+  cloudLoading.value = true;
+  try {
+    const res = await fetch('/api/cloudinary-assets', {
+      headers: { Authorization: `Bearer ${props.token}` },
+    });
+    console.info('[admin-panel] loadCloudData() fetch status', res.status);
+    if (res.status === 401) {
+      emit('logout');
+      photosError.value = 'Sesion expirada. Volve a iniciar sesion.';
+      return;
+    }
+    if (!res.ok) throw new Error('No se pudieron cargar assets de Cloudinary.');
+    const data = await res.json();
+    cloudinaryConfig.cloudName = data?.cloudName || '';
+    cloudinaryConfig.uploadPreset = data?.uploadPreset || '';
+    uploaderUnavailable.value = !cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset;
+    const assets = Array.isArray(data.assets)
+      ? data.assets.map((a) => ({
+          publicId: a.publicId,
+          url: a.url,
+        }))
+      : [];
+    cloudAssets.value = assets;
+    selectedCloud.value = new Set();
+    console.info('[admin-panel] Cloudinary cargado.', {
+      apiPayload: data,
+      resolvedConfig: { cloudName: cloudinaryConfig.cloudName, uploadPreset: cloudinaryConfig.uploadPreset },
+      assets: assets.length,
+      uploaderDisponible: !uploaderUnavailable.value,
+    });
+  } catch (err) {
+    console.warn('[admin-panel] Error cargando Cloudinary.', err);
+    cloudError.value = err.message || 'No se pudo cargar Cloudinary.';
+    uploaderUnavailable.value = true;
+  } finally {
+    cloudLoading.value = false;
+  }
+}
+
+const savePhotos = async () => {
+  photosError.value = '';
+  photosSaved.value = false;
+  const urls = photosPreview.value;
+  if (!urls.length) {
+    photosError.value = 'Agrega al menos una URL.';
     return;
   }
-
-  panelError.value = '';
-  loggedIn.value = true;
-
-  const ok = await fetchSummary(true);
-  if (!ok) {
-    loggedIn.value = false;
+  savingPhotos.value = true;
+  try {
+    const res = await fetch('/api/admin-photos', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${props.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ photos: urls }),
+    });
+    if (res.status === 401) {
+      emit('logout');
+      photosError.value = 'Sesion expirada. Volve a iniciar sesion.';
+      return;
+    }
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail?.error || 'No se pudieron guardar las fotos.');
+    }
+    photosSaved.value = true;
+  } catch (err) {
+    photosError.value = err.message || 'No se pudieron guardar las fotos.';
+  } finally {
+    savingPhotos.value = false;
   }
 };
 
-const logout = () => {
-  loggedIn.value = false;
-  panelError.value = '';
+const triggerUpload = () => {
+  photosError.value = '';
+  photosSaved.value = false;
+  if (uploaderUnavailable.value) {
+    photosError.value = 'Configura CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET.';
+    return;
+  }
+  fileInput.value?.click();
 };
 
-const fetchSummary = async (fromLogin = false) => {
-  if (!loggedIn.value && !fromLogin) return false;
+const handleFiles = async (event) => {
+  const files = Array.from(event.target.files || []).filter((f) => f && f.size);
+  if (!files.length) return;
+  uploading.value = true;
+  photosError.value = '';
+  photosSaved.value = false;
+  try {
+    for (const file of files) {
+      await uploadToCloudinary(file);
+    }
+  } catch (err) {
+    photosError.value = err?.message || 'No se pudieron subir las imagenes.';
+  } finally {
+    uploading.value = false;
+    if (fileInput.value) fileInput.value.value = '';
+  }
+};
+
+const uploadToCloudinary = async (file) => {
+  if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
+    console.error('[admin-panel] Intento de subir sin config de Cloudinary.', cloudinaryConfig);
+    throw new Error('Configura CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET.');
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+  const targetUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`;
+  console.info('[admin-panel] Subiendo imagen a Cloudinary.', { targetUrl, size: file.size });
+  const res = await fetch(targetUrl, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail?.error?.message || 'Cloudinary rechazo la subida.');
+  }
+  const data = await res.json();
+  const url = data.secure_url || data.url;
+  if (url) {
+    const current = photosPreview.value;
+    photosDraft.value = [...new Set([...current, url])].join('\n');
+    const publicId = data.public_id;
+    if (publicId) {
+      cloudAssets.value = [{ publicId, url }, ...cloudAssets.value];
+    }
+  }
+};
+
+const clearSelection = () => {
+  photosDraft.value = '';
+  photosSaved.value = false;
+  photosError.value = '';
+};
+
+const toggleCloudSelection = (publicId) => {
+  const next = new Set(selectedCloud.value);
+  if (next.has(publicId)) {
+    next.delete(publicId);
+  } else {
+    next.add(publicId);
+  }
+  selectedCloud.value = next;
+};
+
+const addSelectedFromCloud = () => {
+  const idSet = new Set(selectedCloud.value);
+  if (!idSet.size) return;
+  const urlsToAdd = cloudAssets.value
+    .filter((a) => idSet.has(a.publicId))
+    .map((a) => (a.url || '').trim())
+    .filter(Boolean);
+  if (!urlsToAdd.length) return;
+  const current = photosPreview.value;
+  photosDraft.value = [...new Set([...current, ...urlsToAdd])].join('\n');
+  photosSaved.value = false;
+};
+
+const deleteSelectedFromCloud = async () => {
+  const ids = Array.from(selectedCloud.value);
+  if (!ids.length) return;
+  cloudError.value = '';
+  try {
+    const res = await fetch('/api/cloudinary-assets', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${props.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ publicIds: ids }),
+    });
+    if (res.status === 401) {
+      emit('logout');
+      return;
+    }
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail?.error || 'No se pudieron borrar los assets.');
+    }
+    await loadCloudData();
+  } catch (err) {
+    cloudError.value = err?.message || 'No se pudieron borrar los assets.';
+  }
+};
+
+const resetSelection = () => {
+  photosDraft.value = '';
+  photosSaved.value = false;
+  photosError.value = '';
+};
+
+async function fetchSummary() {
+  console.info('[admin-panel] fetchSummary() start', {
+    tokenPresent: Boolean(props.token),
+    tokenSnippet: props.token ? String(props.token).slice(0, 12) : '(none)',
+  });
+  if (!props.token) return;
 
   loading.value = true;
   try {
     const response = await fetch('/api/admin-summary', {
-      headers: { 'x-admin-token': getToken() },
+      headers: { Authorization: `Bearer ${props.token}` },
     });
+    console.info('[admin-panel] fetchSummary() status', response.status);
+
+    if (response.status === 401) {
+      emit('logout');
+      panelError.value = 'Sesion expirada. Volve a iniciar sesion.';
+      return;
+    }
 
     if (!response.ok) {
-      const mapped = await ApiErrorMapper.fromResponse(response, 'No se pudo obtener el resumen.');
-      openForError(mapped);
-      throw mapped;
+      const detail = await response.json().catch(() => ({}));
+      throw new Error(detail?.error || 'No se pudo obtener el resumen.');
     }
 
     panelError.value = '';
     const data = await response.json();
+    console.info('[admin-panel] Resumen cargado.', {
+      totalRows: Array.isArray(data.rows) ? data.rows.length : 0,
+      attendingYes: data.yes,
+      attendingNo: data.no,
+    });
 
     summary.yes = data.yes || 0;
     summary.no = data.no || 0;
@@ -231,23 +494,13 @@ const fetchSummary = async (fromLogin = false) => {
       email: row.email || '',
       extra_guests: Array.isArray(row.extra_guests) ? row.extra_guests : [],
     }));
-
-    return true;
-  } catch (errorCaught) {
-    const mapped = errorCaught instanceof AppError
-      ? errorCaught
-      : ApiErrorMapper.fromUnknown(errorCaught, 'No se pudo obtener el resumen.');
-
-    if (!(errorCaught instanceof AppError)) {
-      openForError(mapped);
-    }
-
-    panelError.value = mapped.message;
-    return false;
+  } catch (error) {
+    console.warn('[admin-panel] Error obteniendo resumen.', error);
+    panelError.value = error.message || 'No se pudo obtener el resumen.';
   } finally {
     loading.value = false;
   }
-};
+}
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -274,37 +527,7 @@ const formatMenu = (menu) => {
   gap: 14px;
 }
 
-.login,
-.summary {
-  display: grid;
-  gap: 12px;
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-label {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-input {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text);
-}
-
-.error {
-  color: #ad2b42;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.summary-head {
+.header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -314,6 +537,13 @@ input {
 .actions {
   display: flex;
   gap: 10px;
+  align-items: center;
+}
+
+.error {
+  color: #ad2b42;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .stats {
@@ -340,11 +570,6 @@ input {
   font-size: 22px;
   font-weight: 700;
   margin-top: 4px;
-}
-
-.muted {
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .table {
@@ -436,5 +661,127 @@ input {
     grid-template-columns: 1.5fr 0.7fr 0.9fr 1.1fr;
     font-size: 14px;
   }
+}
+
+.photos-card {
+  display: grid;
+  gap: 10px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.success {
+  color: #0b8a5a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.picker-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.picker-row.inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.muted.small {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hidden {
+  display: none;
+}
+
+.selected-title {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.actions.solo {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.cloud-block {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cloud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cloud-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.assets-list {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.asset-card {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.asset-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.asset-id {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.ghost.danger {
+  border-color: #ad2b42;
+  color: #ad2b42;
 }
 </style>

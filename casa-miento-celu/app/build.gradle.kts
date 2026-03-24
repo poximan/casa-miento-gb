@@ -13,7 +13,7 @@ val localProperties = Properties().apply {
     }
 }
 
-fun requiredSecret(name: String): String {
+fun requiredConfig(name: String): String {
     val value = (localProperties.getProperty(name)
         ?: System.getenv(name))
         ?.trim()
@@ -21,7 +21,7 @@ fun requiredSecret(name: String): String {
 
     if (value.isBlank()) {
         throw GradleException(
-            "Falta la configuracion protegida '$name'. " +
+            "Falta la configuracion '$name'. " +
                 "Completa local.properties (no versionado) o variable de entorno."
         )
     }
@@ -47,14 +47,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "DB_URL", asBuildConfigString(requiredSecret("DB_URL")))
-        buildConfigField("String", "DB_USER", asBuildConfigString(requiredSecret("DB_USER")))
-        buildConfigField("String", "DB_PASSWORD", asBuildConfigString(requiredSecret("DB_PASSWORD")))
-        buildConfigField("String", "EMAIL_HOST", asBuildConfigString(requiredSecret("EMAIL_HOST")))
-        buildConfigField("String", "EMAIL_PORT", asBuildConfigString(requiredSecret("EMAIL_PORT")))
-        buildConfigField("String", "EMAIL_USER", asBuildConfigString(requiredSecret("EMAIL_USER")))
-        buildConfigField("String", "EMAIL_PASS", asBuildConfigString(requiredSecret("EMAIL_PASS")))
-        buildConfigField("String", "EMAIL_FROM", asBuildConfigString(requiredSecret("EMAIL_FROM")))
+        buildConfigField("String", "API_BASE_URL", asBuildConfigString(requiredConfig("API_BASE_URL")))
     }
 
     buildTypes {
