@@ -1,7 +1,7 @@
-import pool, { ensureTables } from './db.js';
-import { extractBearerToken, verifyAdminToken, UnauthorizedError } from './admin-auth.js';
-import { isConfigError, sendSafeConfigError } from './config.js';
-import { logOperationalError, mapOperationalError } from './operational-error.js';
+import pool, { ensureTables } from '../server/db.js';
+import { extractBearerToken, verifyAdminToken, UnauthorizedError } from '../server/admin-auth.js';
+import { isConfigError, sendSafeConfigError } from '../server/config.js';
+import { logOperationalError, mapOperationalError } from '../server/operational-error.js';
 
 const withCors = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

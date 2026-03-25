@@ -61,6 +61,8 @@ onUnmounted(() => {
 <style scoped>
 .carousel {
   overflow: hidden;
+  background: #fffdf7;
+  border: 1px solid var(--border);
 }
 
 .frame {
@@ -77,11 +79,11 @@ onUnmounted(() => {
 .slide {
   position: absolute;
   inset: 0;
-  background-size: contain;
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
   opacity: 0;
-  transform: scale(1.04);
+  transform: scale(1.02);
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
@@ -91,9 +93,7 @@ onUnmounted(() => {
 }
 
 .overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.5));
+  display: none;
 }
 
 .dots {
@@ -107,18 +107,18 @@ onUnmounted(() => {
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  border: 2px solid rgba(224, 180, 164, 0.8);
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(63, 74, 60, 0.35);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
   padding: 0;
   transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .dots button.active {
-  background: #d9846c;
-  border-color: #d9846c;
+  background: var(--accent);
+  border-color: var(--accent);
   transform: scale(1.1);
-  box-shadow: 0 0 0 3px rgba(217, 132, 108, 0.28);
+  box-shadow: 0 0 0 3px rgba(63, 74, 60, 0.18);
 }
 
 @media (max-width: 720px) {

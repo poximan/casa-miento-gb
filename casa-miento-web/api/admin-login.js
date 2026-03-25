@@ -1,5 +1,5 @@
-import { assertAdminCredentials, createAdminToken, UnauthorizedError } from './admin-auth.js';
-import { isConfigError, sendSafeConfigError } from './config.js';
+import { assertAdminCredentials, createAdminToken, UnauthorizedError } from '../server/admin-auth.js';
+import { isConfigError, sendSafeConfigError } from '../server/config.js';
 
 const clientIp = (req) => {
   const forwarded = req.headers?.['x-forwarded-for'];

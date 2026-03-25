@@ -1,6 +1,6 @@
-import pool, { ensurePhotosTable } from './db.js';
-import { isConfigError, sendSafeConfigError } from './config.js';
-import { logOperationalError, mapOperationalError } from './operational-error.js';
+import pool, { ensurePhotosTable } from '../server/db.js';
+import { isConfigError, sendSafeConfigError } from '../server/config.js';
+import { logOperationalError, mapOperationalError } from '../server/operational-error.js';
 import { listAssets } from './cloudinary-assets.js';
 
 const withCors = (res) => {

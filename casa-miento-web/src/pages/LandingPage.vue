@@ -10,13 +10,14 @@
 
     <template v-else>
       <section class="card hero">
+        <div class="hero-bg"></div>
         <div class="badge">Nuestra boda</div>
         <h1 class="names">
           <span class="script">{{ config.couple.bride }}</span>
           <span class="amp">&amp;</span>
           <span class="script">{{ config.couple.groom }}</span>
         </h1>
-        <p class="muted">
+        <p class="muted intro">
           Nos encantaria compartir este dia con vos. Guarda la fecha y sumate a la celebracion.
         </p>
 
@@ -140,28 +141,35 @@ const formattedDate = computed(() => {
   overflow: hidden;
   display: grid;
   gap: 14px;
+  padding: 42px 36px;
 }
 
 .names {
-  font-size: clamp(32px, 6vw, 56px);
+  font-size: clamp(42px, 7vw, 68px);
   display: flex;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .script {
   font-family: 'Great Vibes', 'Playfair Display', cursive;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .amp {
-  font-size: 40px;
+  font-size: 44px;
   color: var(--accent);
 }
 
 .muted {
   color: var(--muted);
+}
+
+.intro {
+  text-align: center;
+  font-size: 18px;
 }
 
 .hero-meta {
@@ -207,6 +215,19 @@ ul {
   margin-top: 28px;
   text-align: center;
   color: var(--muted);
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(151, 181, 143, 0.18), transparent 38%),
+    radial-gradient(circle at 70% 20%, rgba(202, 184, 156, 0.22), transparent 32%),
+    url('/assets/fondo-watercolor.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.28;
+  pointer-events: none;
+  filter: saturate(0.9);
 }
 
 .admin-link {

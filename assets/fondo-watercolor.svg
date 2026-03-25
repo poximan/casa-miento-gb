@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple soft background derived from existing asset -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 671.94 671.94" aria-hidden="true">
+  <defs>
+    <radialGradient id="bg" cx="382.9431" cy="442.0794" r="421.8727" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EED9C4"/>
+      <stop offset="0.34" stop-color="#EFDCC8"/>
+      <stop offset="0.69" stop-color="#F4E4D5"/>
+      <stop offset="1" stop-color="#FAF0E6"/>
+    </radialGradient>
+  </defs>
+  <rect width="671.94" height="671.94" fill="url(#bg)"/>
+</svg>

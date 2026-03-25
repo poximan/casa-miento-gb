@@ -1,4 +1,4 @@
-﻿const isNodeNetworkCode = (code) =>
+const isNodeNetworkCode = (code) =>
   code === 'ENOTFOUND' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'EHOSTUNREACH';
 
 const mapNodeNetworkError = (error) => {

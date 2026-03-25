@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { extractBearerToken, verifyAdminToken, UnauthorizedError } from './admin-auth.js';
-import { isConfigError, sendSafeConfigError } from './config.js';
+import { extractBearerToken, verifyAdminToken, UnauthorizedError } from '../server/admin-auth.js';
+import { isConfigError, sendSafeConfigError } from '../server/config.js';
 
 const {
   CLOUDINARY_CLOUD_NAME,
