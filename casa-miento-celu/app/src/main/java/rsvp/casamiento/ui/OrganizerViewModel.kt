@@ -14,7 +14,6 @@ import rsvp.casamiento.data.NeonRsvpRepository
 import rsvp.casamiento.mail.EmailDiffusionSender
 import rsvp.casamiento.model.OrganizerBootstrapCache
 import rsvp.casamiento.model.RsvpRecord
-import rsvp.casamiento.session.SessionManager
 
 enum class RecipientFilter {
     YES,
@@ -28,8 +27,7 @@ data class OrganizerUiState(
     val records: List<RsvpRecord> = emptyList(),
     val errorMessage: String? = null,
     val sendMessage: String? = null,
-    val lastSyncEpochMs: Long? = null,
-    val authError: Boolean = false
+    val lastSyncEpochMs: Long? = null
 ) {
     val yesCount: Int
         get() = records.count { it.attending }
@@ -41,8 +39,7 @@ data class OrganizerUiState(
 
 class OrganizerViewModel(
     private val repository: NeonRsvpRepository,
-    private val emailSender: EmailDiffusionSender,
-    private val sessionManager: SessionManager
+    private val emailSender: EmailDiffusionSender
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrganizerUiState(isLoading = true))
@@ -55,47 +52,26 @@ class OrganizerViewModel(
                 isLoading = false,
                 records = preload.records,
                 errorMessage = preload.errorMessage,
-                lastSyncEpochMs = System.currentTimeMillis(),
-                authError = preload.errorMessage?.contains("token", ignoreCase = true) == true
+                lastSyncEpochMs = System.currentTimeMillis()
             )
         } else {
             loadData()
         }
     }
 
-    fun setToken(token: String) {
-        sessionManager.saveToken(token)
-    }
-
-    fun clearToken() {
-        sessionManager.clear()
-        _uiState.update { it.copy(authError = true, errorMessage = "Sesión expirada o no iniciada.") }
-    }
-
     fun loadData() {
-        val token = sessionManager.token().orEmpty()
-        if (token.isBlank()) {
-            _uiState.update { it.copy(isLoading = false, authError = true, errorMessage = "Falta token de acceso.") }
-            return
-        }
-
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, authError = false) }
-            val result = runCatching { repository.fetchSummary(token) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = runCatching { repository.fetchSummary() }
             result.fold(
                 onSuccess = { summary ->
                     applySummary(summary)
                 },
                 onFailure = { error ->
-                    val authFailed = error.message?.contains("No autorizado", ignoreCase = true) == true
-                    if (authFailed) {
-                        clearToken()
-                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "No se pudo conectar con el backend.",
-                            authError = authFailed
+                            errorMessage = error.message ?: "No se pudo leer la base de datos."
                         )
                     }
                 }
@@ -109,8 +85,7 @@ class OrganizerViewModel(
                 isLoading = false,
                 records = summary.records,
                 errorMessage = null,
-                lastSyncEpochMs = System.currentTimeMillis(),
-                authError = false
+                lastSyncEpochMs = System.currentTimeMillis()
             )
         }
     }
@@ -131,12 +106,6 @@ class OrganizerViewModel(
     fun recipientCountFor(filter: RecipientFilter): Int = recipientsFor(filter).size
 
     fun sendBroadcast(filter: RecipientFilter, subject: String, body: String) {
-        val token = sessionManager.token().orEmpty()
-        if (token.isBlank()) {
-            _uiState.update { it.copy(sendMessage = "Sesión expirada. Inicia sesión nuevamente.") }
-            return
-        }
-
         if (subject.isBlank() || body.isBlank()) {
             _uiState.update { it.copy(sendMessage = "Asunto y mensaje son obligatorios.") }
             return
@@ -145,8 +114,8 @@ class OrganizerViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingEmail = true, sendMessage = null) }
             val result = emailSender.sendBroadcast(
-                token = token,
                 filter = filter,
+                records = _uiState.value.records,
                 subject = subject,
                 body = body
             )
@@ -155,18 +124,15 @@ class OrganizerViewModel(
                     _uiState.update {
                         it.copy(
                             isSendingEmail = false,
-                            sendMessage = "Difusión enviada a $sent destinatarios."
+                            sendMessage = "Difusion enviada a $sent destinatarios."
                         )
                     }
                 },
                 onFailure = { error ->
-                    val authFailed = error.message?.contains("No autorizado", ignoreCase = true) == true
-                    if (authFailed) clearToken()
                     _uiState.update {
                         it.copy(
                             isSendingEmail = false,
-                            sendMessage = "Error de envío: ${error.message ?: "desconocido"}",
-                            authError = authFailed
+                            sendMessage = "Error de envio: ${error.message ?: "desconocido"}"
                         )
                     }
                 }
@@ -196,14 +162,13 @@ class OrganizerViewModel(
     }
 
     companion object {
-        fun factory(sessionManager: SessionManager): ViewModelProvider.Factory =
+        fun factory(): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     @Suppress("UNCHECKED_CAST")
                     return OrganizerViewModel(
                         repository = NeonRsvpRepository(),
-                        emailSender = EmailDiffusionSender(),
-                        sessionManager = sessionManager
+                        emailSender = EmailDiffusionSender()
                     ) as T
                 }
             }

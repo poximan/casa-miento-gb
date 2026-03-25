@@ -3,30 +3,41 @@ package rsvp.casamiento.mail
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import rsvp.casamiento.data.AdminApiClient
+import org.json.JSONObject
+import rsvp.casamiento.data.OrganizerApiClient
+import rsvp.casamiento.model.RsvpRecord
 import rsvp.casamiento.ui.RecipientFilter
 
 class EmailDiffusionSender(
-    private val apiClient: AdminApiClient = AdminApiClient(),
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val apiClient: OrganizerApiClient = OrganizerApiClient()
 ) {
     suspend fun sendBroadcast(
-        token: String,
         filter: RecipientFilter,
+        records: List<RsvpRecord>,
         subject: String,
         body: String
     ): Result<Int> = withContext(ioDispatcher) {
-        val filterValue = when (filter) {
-            RecipientFilter.YES -> "yes"
-            RecipientFilter.NO -> "no"
-            RecipientFilter.ALL -> "all"
-        }
+        runCatching {
+            if (records.isEmpty()) {
+                throw IllegalStateException("No hay destinatarios para el filtro seleccionado.")
+            }
 
-        apiClient.sendBroadcast(
-            token = token,
-            filter = filterValue,
-            subject = subject,
-            body = body
-        )
+            val payload = apiClient.requestObject(
+                path = "/api/admin-broadcast",
+                method = "POST",
+                body = JSONObject()
+                    .put("filter", when (filter) {
+                        RecipientFilter.YES -> "yes"
+                        RecipientFilter.NO -> "no"
+                        RecipientFilter.ALL -> "all"
+                    })
+                    .put("subject", subject)
+                    .put("message", body)
+                    .toString()
+            )
+
+            payload.optInt("sent")
+        }
     }
 }

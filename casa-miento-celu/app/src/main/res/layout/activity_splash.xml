@@ -14,7 +14,7 @@
         android:layout_height="170dp"
         android:contentDescription="@string/app_name"
         android:scaleType="fitCenter"
-        android:src="@drawable/wedd_icon" />
+        android:src="@drawable/logo_con_fondo" />
 
     <TextView
         android:id="@+id/splash_title"

@@ -56,19 +56,25 @@ export default async function handler(req, res) {
       return;
     }
 
-    const normalizeMenu = (value) => {
+    const validateMenu = (value) => {
       const menu = (value || '').toString().trim().toLowerCase();
-      return allowedMenus.has(menu) ? menu : 'clasico';
+      if (!allowedMenus.has(menu)) {
+        throw new Error('INVALID_MENU');
+      }
+      return menu;
     };
 
-    const normalizedExtras = (extraGuests || [])
-      .slice(0, 12)
-      .map((g) => ({
-        firstName: (g.firstName || '').trim(),
-        lastName: (g.lastName || '').trim(),
-        menu: normalizeMenu(g.menu),
-      }))
-      .filter((g) => g.firstName || g.lastName);
+    const normalizedExtras = [];
+    for (const guest of (extraGuests || []).slice(0, 12)) {
+      const normalizedGuest = {
+        firstName: (guest.firstName || '').trim(),
+        lastName: (guest.lastName || '').trim(),
+        menu: validateMenu(guest.menu),
+      };
+      if (normalizedGuest.firstName || normalizedGuest.lastName) {
+        normalizedExtras.push(normalizedGuest);
+      }
+    }
 
     for (const guest of normalizedExtras) {
       if (!guest.firstName || !guest.lastName) {
@@ -77,44 +83,64 @@ export default async function handler(req, res) {
       }
     }
 
-    const primaryMenu = normalizeMenu(primaryGuest.menu);
+    const primaryMenu = validateMenu(primaryGuest.menu);
     const cleanedEmail = (email || '').trim();
     const cleanedPhone = (phone || '').trim();
 
-    if (cleanedEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanedEmail)) {
+    if (!cleanedEmail) {
+      res.status(400).json({ error: 'El email es obligatorio para enviar la confirmacion.' });
+      return;
+    }
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanedEmail)) {
       res.status(400).json({ error: 'Email invalido.' });
       return;
     }
 
     await ensureTables();
 
-    const result = await pool.query(
-      `
-      INSERT INTO rsvps (primary_first_name, primary_last_name, primary_menu, attending, email, phone, extra_guests)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *;
-    `,
-      [
-        primaryFirstName,
-        primaryLastName,
-        primaryMenu,
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(
+        `
+        INSERT INTO rsvps (primary_first_name, primary_last_name, primary_menu, attending, email, phone, extra_guests)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *;
+      `,
+        [
+          primaryFirstName,
+          primaryLastName,
+          primaryMenu,
+          attending,
+          cleanedEmail,
+          cleanedPhone || null,
+          JSON.stringify(normalizedExtras),
+        ]
+      );
+
+      await sendInviteEmail({
         attending,
-        cleanedEmail || null,
-        cleanedPhone || null,
-        JSON.stringify(normalizedExtras),
-      ]
-    );
+        email: cleanedEmail,
+        phone: cleanedPhone || null,
+        primaryGuest: { ...primaryGuest, menu: primaryMenu, firstName: primaryFirstName, lastName: primaryLastName },
+        extraGuests: normalizedExtras,
+      });
 
-    await sendInviteEmail({
-      attending,
-      email: cleanedEmail || null,
-      phone: cleanedPhone || null,
-      primaryGuest: { ...primaryGuest, menu: primaryMenu, firstName: primaryFirstName, lastName: primaryLastName },
-      extraGuests: normalizedExtras,
-    });
-
-    res.status(200).json({ ok: true, id: result.rows[0].id });
+      await client.query('COMMIT');
+      res.status(200).json({ ok: true, id: result.rows[0].id });
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
   } catch (err) {
+    if (err?.message === 'INVALID_MENU') {
+      res.status(400).json({ error: 'El menu enviado no es valido.' });
+      return;
+    }
     if (isConfigError(err)) {
       sendSafeConfigError(res);
       return;

@@ -90,12 +90,12 @@
       <div class="cloud-header">
         <div class="selected-title">Imagenes preparadas para publicar</div>
         <div class="cloud-actions">
-      <button class="primary-btn ghost" type="button" @click="addSelectedFromCloud" :disabled="!selectedCloud.size">
-        Agregar seleccionadas
-      </button>
-      <button class="ghost-btn danger" type="button" @click="deleteSelectedFromCloud" :disabled="!selectedCloud.size">
-        Eliminar de Cloudinary
-      </button>
+          <button class="primary-btn ghost" type="button" @click="addSelectedFromCloud" :disabled="!selectedCloud.size">
+            Agregar seleccionadas
+          </button>
+          <button class="ghost-btn danger" type="button" @click="deleteSelectedFromCloud" :disabled="!selectedCloud.size">
+            Eliminar de Cloudinary
+          </button>
         </div>
       </div>
 
@@ -135,6 +135,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
 
 const props = defineProps({
   token: {
@@ -155,10 +156,6 @@ const photosDraft = ref('');
 const uploading = ref(false);
 const uploaderUnavailable = ref(false);
 const fileInput = ref(null);
-const cloudinaryConfig = reactive({
-  cloudName: '',
-  uploadPreset: '',
-});
 const cloudAssets = ref([]);
 const cloudLoading = ref(false);
 const cloudError = ref('');
@@ -269,11 +266,11 @@ async function loadCloudData() {
       photosError.value = 'Sesion expirada. Volve a iniciar sesion.';
       return;
     }
-    if (!res.ok) throw new Error('No se pudieron cargar assets de Cloudinary.');
+    if (!res.ok) {
+      throw await ApiErrorMapper.fromResponse(res, 'No se pudieron cargar assets de Cloudinary.');
+    }
     const data = await res.json();
-    cloudinaryConfig.cloudName = data?.cloudName || '';
-    cloudinaryConfig.uploadPreset = data?.uploadPreset || '';
-    uploaderUnavailable.value = !cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset;
+    uploaderUnavailable.value = false;
     const assets = Array.isArray(data.assets)
       ? data.assets.map((a) => ({
           publicId: a.publicId,
@@ -284,14 +281,17 @@ async function loadCloudData() {
     selectedCloud.value = new Set();
     console.info('[admin-panel] Cloudinary cargado.', {
       apiPayload: data,
-      resolvedConfig: { cloudName: cloudinaryConfig.cloudName, uploadPreset: cloudinaryConfig.uploadPreset },
       assets: assets.length,
       uploaderDisponible: !uploaderUnavailable.value,
     });
   } catch (err) {
-    console.warn('[admin-panel] Error cargando Cloudinary.', err);
-    cloudError.value = err.message || 'No se pudo cargar Cloudinary.';
+    const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudo cargar Cloudinary.');
+    console.error('[admin-panel] Error cargando Cloudinary.', mapped);
+    cloudError.value = mapped.message;
     uploaderUnavailable.value = true;
+    if (mapped.code === 'CONFIG_MISSING') {
+      window.alert(mapped.detail || mapped.message);
+    }
   } finally {
     cloudLoading.value = false;
   }
@@ -321,12 +321,16 @@ const savePhotos = async () => {
       return;
     }
     if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail?.error || 'No se pudieron guardar las fotos.');
+      throw await ApiErrorMapper.fromResponse(res, 'No se pudieron guardar las fotos.');
     }
     photosSaved.value = true;
   } catch (err) {
-    photosError.value = err.message || 'No se pudieron guardar las fotos.';
+    const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudieron guardar las fotos.');
+    photosError.value = mapped.message;
+    if (mapped.code === 'CONFIG_MISSING') {
+      console.error('[admin-panel] Configuracion faltante guardando fotos.', mapped);
+      window.alert(mapped.detail || mapped.message);
+    }
   } finally {
     savingPhotos.value = false;
   }
@@ -336,7 +340,7 @@ const triggerUpload = () => {
   photosError.value = '';
   photosSaved.value = false;
   if (uploaderUnavailable.value) {
-    photosError.value = 'Configura CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET.';
+    photosError.value = 'El middleware de Cloudinary no esta disponible.';
     return;
   }
   fileInput.value?.click();
@@ -361,35 +365,50 @@ const handleFiles = async (event) => {
 };
 
 const uploadToCloudinary = async (file) => {
-  if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
-    console.error('[admin-panel] Intento de subir sin config de Cloudinary.', cloudinaryConfig);
-    throw new Error('Configura CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET.');
-  }
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', cloudinaryConfig.uploadPreset);
-
-  const targetUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`;
-  console.info('[admin-panel] Subiendo imagen a Cloudinary.', { targetUrl, size: file.size });
-  const res = await fetch(targetUrl, {
+  const base64Data = await readFileAsBase64(file);
+  const res = await fetch('/api/cloudinary-assets', {
     method: 'POST',
-    body: formData,
+    headers: {
+      Authorization: `Bearer ${props.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      base64Data,
+    }),
   });
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(detail?.error?.message || 'Cloudinary rechazo la subida.');
+    throw await ApiErrorMapper.fromResponse(res, 'No se pudo subir la imagen via middleware.');
   }
   const data = await res.json();
-  const url = data.secure_url || data.url;
+  const asset = data.asset || {};
+  const url = asset.url;
   if (url) {
     const current = photosPreview.value;
     photosDraft.value = [...new Set([...current, url])].join('\n');
-    const publicId = data.public_id;
+    const publicId = asset.publicId;
     if (publicId) {
       cloudAssets.value = [{ publicId, url }, ...cloudAssets.value];
     }
   }
 };
+
+const readFileAsBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const base64Data = result.includes(',') ? result.split(',').pop() : '';
+      if (!base64Data) {
+        reject(new Error('No se pudo leer la imagen seleccionada.'));
+        return;
+      }
+      resolve(base64Data);
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada.'));
+    reader.readAsDataURL(file);
+  });
 
 const clearSelection = () => {
   photosDraft.value = '';
@@ -438,12 +457,16 @@ const deleteSelectedFromCloud = async () => {
       return;
     }
     if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail?.error || 'No se pudieron borrar los assets.');
+      throw await ApiErrorMapper.fromResponse(res, 'No se pudieron borrar los assets.');
     }
     await loadCloudData();
   } catch (err) {
-    cloudError.value = err?.message || 'No se pudieron borrar los assets.';
+    const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudieron borrar los assets.');
+    cloudError.value = mapped.message;
+    if (mapped.code === 'CONFIG_MISSING') {
+      console.error('[admin-panel] Configuracion faltante borrando assets.', mapped);
+      window.alert(mapped.detail || mapped.message);
+    }
   }
 };
 
@@ -474,8 +497,7 @@ async function fetchSummary() {
     }
 
     if (!response.ok) {
-      const detail = await response.json().catch(() => ({}));
-      throw new Error(detail?.error || 'No se pudo obtener el resumen.');
+      throw await ApiErrorMapper.fromResponse(response, 'No se pudo obtener el resumen.');
     }
 
     panelError.value = '';
@@ -486,17 +508,21 @@ async function fetchSummary() {
       attendingNo: data.no,
     });
 
-    summary.yes = data.yes || 0;
-    summary.no = data.no || 0;
-    summary.people = data.people || 0;
+    summary.yes = data.yes;
+    summary.no = data.no;
+    summary.people = data.people;
     summary.rows = (data.rows || []).map((row) => ({
       ...row,
       email: row.email || '',
       extra_guests: Array.isArray(row.extra_guests) ? row.extra_guests : [],
     }));
   } catch (error) {
-    console.warn('[admin-panel] Error obteniendo resumen.', error);
-    panelError.value = error.message || 'No se pudo obtener el resumen.';
+    const mapped = ApiErrorMapper.fromUnknown(error, 'No se pudo obtener el resumen.');
+    console.error('[admin-panel] Error obteniendo resumen.', mapped);
+    panelError.value = mapped.message;
+    if (mapped.code === 'CONFIG_MISSING') {
+      window.alert(mapped.detail || mapped.message);
+    }
   } finally {
     loading.value = false;
   }

@@ -71,7 +71,7 @@
             android:layout_gravity="center_horizontal"
             android:contentDescription="@string/app_name"
             android:scaleType="fitCenter"
-            android:src="@drawable/wedd_icon" />
+            android:src="@drawable/logo_con_fondo" />
 
         <TextView
             android:id="@+id/drawer_title"
@@ -92,6 +92,9 @@
             android:layout_marginTop="28dp"
             android:checkable="true"
             android:text="@string/menu_confirmed"
+            android:textColor="@color/text_primary"
+            app:backgroundTint="@color/card_background"
+            app:iconTint="@color/action_primary"
             app:icon="@android:drawable/ic_menu_agenda" />
 
         <com.google.android.material.button.MaterialButton
@@ -102,7 +105,23 @@
             android:layout_marginTop="10dp"
             android:checkable="true"
             android:text="@string/menu_diffusion"
+            android:textColor="@color/text_primary"
+            app:backgroundTint="@color/card_background"
+            app:iconTint="@color/action_primary"
             app:icon="@android:drawable/ic_dialog_email" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/menu_carousel_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:checkable="true"
+            android:text="@string/menu_carousel"
+            android:textColor="@color/text_primary"
+            app:backgroundTint="@color/card_background"
+            app:iconTint="@color/action_primary"
+            app:icon="@android:drawable/ic_menu_gallery" />
     </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

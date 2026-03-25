@@ -1,73 +1,11 @@
-import pool, { ensurePhotosTable } from '../server/db.js';
-import { extractBearerToken, verifyAdminToken, UnauthorizedError } from '../server/admin-auth.js';
+import { extractBearerToken, verifyOrganizerToken, UnauthorizedError } from '../server/admin-auth.js';
 import { isConfigError, sendSafeConfigError } from '../server/config.js';
+import { parseJsonBody, withCors } from '../server/http.js';
 import { logOperationalError, mapOperationalError } from '../server/operational-error.js';
-import { listAssets } from './cloudinary-assets.js';
-
-const withCors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
-
-const parseBody = async (req) => {
-  if (req.body) return req.body;
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(data ? JSON.parse(data) : {});
-      } catch (err) {
-        reject(err);
-      }
-    });
-  });
-};
-
-const cleanMissingCloudinary = async (rows) => {
-  const assets = await listAssets();
-  const assetUrlSet = new Set(assets.map((a) => (a.url || '').trim()).filter(Boolean));
-
-  if (!assetUrlSet.size) return rows;
-
-  const updates = [];
-  const cleanedRows = rows.map((row) => {
-    const urls = Array.isArray(row.urls) ? row.urls : [];
-    const filtered = urls.filter((u) => assetUrlSet.has((u || '').trim()));
-    if (filtered.length !== urls.length) {
-      updates.push(pool.query('UPDATE carousel_photos SET urls = $1 WHERE id = $2', [filtered, row.id]));
-    }
-    return { ...row, urls: filtered };
-  });
-
-  if (updates.length) {
-    await Promise.allSettled(updates);
-  }
-
-  return cleanedRows;
-};
-
-const readPublications = async () => {
-  await ensurePhotosTable();
-  const { rows } = await pool.query('SELECT id, urls, created_at FROM carousel_photos ORDER BY created_at DESC');
-  const cleaned = await cleanMissingCloudinary(rows);
-  return cleaned.map((row) => ({
-    id: row.id,
-    urls: Array.isArray(row.urls) ? row.urls : [],
-    createdAt: row.created_at,
-  }));
-};
-
-const writePhotos = async (urls) => {
-  await ensurePhotosTable();
-  await pool.query('INSERT INTO carousel_photos (urls) VALUES ($1)', [urls]);
-};
+import { publishCarouselPhotos, readCarouselPublications } from '../server/services/carousel-service.js';
 
 export default async function handler(req, res) {
-  withCors(res);
+  withCors(res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -79,22 +17,22 @@ export default async function handler(req, res) {
       res.status(401).json({ error: 'No autorizado', code: 'UNAUTHORIZED' });
       return;
     }
-    verifyAdminToken(token);
+    verifyOrganizerToken(token);
 
     if (req.method === 'GET') {
-      const publications = await readPublications();
-      res.status(200).json({ publications });
+      res.status(200).json({ publications: await readCarouselPublications() });
       return;
     }
 
     if (req.method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseJsonBody(req);
       const photos = Array.isArray(body.photos)
         ? body.photos
-            .map((p) => (typeof p === 'string' ? p.trim() : ''))
-            .filter((p) => p)
+            .map((photo) => (typeof photo === 'string' ? photo.trim() : ''))
+            .filter(Boolean)
             .slice(0, 8)
         : [];
+
       if (!photos.length) {
         res.status(400).json({ error: 'Envia un arreglo de URLs de fotos.' });
         return;
@@ -103,7 +41,8 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'Maximo 8 fotos por publicacion.' });
         return;
       }
-      await writePhotos(photos);
+
+      await publishCarouselPhotos(photos);
       res.status(200).json({ ok: true, count: photos.length });
       return;
     }

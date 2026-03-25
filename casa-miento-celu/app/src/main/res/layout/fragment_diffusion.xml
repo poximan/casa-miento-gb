@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/screen_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -71,7 +72,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:hint="@string/email_subject"
-            app:boxStrokeColor="@color/toolbar_text"
+            app:boxBackgroundColor="@color/card_background"
+            app:boxStrokeColor="@color/border_strong"
             app:hintTextColor="@color/text_primary">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -91,7 +93,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
             android:hint="@string/email_body"
-            app:boxStrokeColor="@color/toolbar_text"
+            app:boxBackgroundColor="@color/card_background"
+            app:boxStrokeColor="@color/border_strong"
             app:hintTextColor="@color/text_primary">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -110,8 +113,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:textColor="@color/toolbar_text"
-            app:backgroundTint="@color/splash_progress_track"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/action_primary"
             android:text="@string/send_diffusion" />
 
         <com.google.android.material.progressindicator.CircularProgressIndicator

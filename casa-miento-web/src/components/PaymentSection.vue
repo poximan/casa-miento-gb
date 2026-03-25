@@ -2,14 +2,14 @@
   <div class="card payment">
     <div class="header">
       <div class="badge">Regalo / Transferencia</div>
-      <p>Tu presencia es lo más importante. Si querés colaborar, podés usar Mercado Pago o transferir.</p>
+      <p>Tu presencia es lo mas importante. Si queres colaborar, podes usar Mercado Pago o transferir.</p>
     </div>
 
     <div class="actions">
       <button v-if="showMpButton" class="primary-btn" @click="openMp">
         Abrir Mercado Pago
       </button>
-      <div class="hint" v-else>Si estás en desktop, usá los datos bancarios para transferir.</div>
+      <div v-else class="hint">No hay un enlace de Mercado Pago configurado para este entorno.</div>
     </div>
 
     <div class="grid-two bank">
@@ -27,10 +27,7 @@
       </div>
     </div>
 
-    <p class="note">
-      Al abrir en Mercado Pago se intenta ir directo a la transferencia con el alias. Si no se abre la app,
-      redirigimos automáticamente al flujo web para que completes el monto.
-    </p>
+    <p class="note">Este acceso abre solo el enlace configurado para Mercado Pago. No se aplican redirecciones alternativas.</p>
   </div>
 </template>
 
@@ -44,30 +41,25 @@ const props = defineProps({
   },
   mercadoPago: {
     type: Object,
-    default: () => ({}),
+    required: true,
   },
 });
 
-const mpDeepLink = computed(() => props.mercadoPago?.deepLink || `mercadopago://send?alias=${props.bank.alias}`);
-const mpFallback = computed(() => props.mercadoPago?.webLink || 'https://www.mercadopago.com.ar/money-transfer');
-
-const showMpButton = computed(() => {
-  if (typeof window === 'undefined') return false;
+const mpDeepLink = computed(() => props.mercadoPago?.deepLink || '');
+const mpWebLink = computed(() => props.mercadoPago?.webLink || '');
+const mpLink = computed(() => {
+  if (typeof window === 'undefined') return mpWebLink.value || mpDeepLink.value;
   const ua = window.navigator.userAgent || '';
   const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-  return isMobile && !!mpDeepLink.value;
+  if (isMobile && mpDeepLink.value) return mpDeepLink.value;
+  return mpWebLink.value;
 });
 
+const showMpButton = computed(() => Boolean(mpLink.value));
+
 const openMp = () => {
-  if (!mpDeepLink.value) return;
-  window.location.href = mpDeepLink.value;
-  const fallback = mpFallback.value;
-  if (!fallback) return;
-  setTimeout(() => {
-    if (!document.hidden) {
-      window.location.href = fallback;
-    }
-  }, 1600);
+  if (!mpLink.value) return;
+  window.location.href = mpLink.value;
 };
 </script>
 

@@ -11,6 +11,7 @@ export class ConfigError extends Error {
 export const requiredEnv = (name) => {
   const value = process.env[name];
   if (typeof value !== 'string' || value.trim() === '') {
+    console.error('[config] Falta configuracion obligatoria.', { key: name });
     throw new ConfigError(name);
   }
   return value.trim();
@@ -25,9 +26,8 @@ export const requiredIntEnv = (name) => {
   return value;
 };
 
-export const booleanEnv = (name, defaultValue = false) => {
-  const raw = process.env[name];
-  if (raw === undefined || raw === null || raw === '') return defaultValue;
+export const requiredBooleanEnv = (name) => {
+  const raw = requiredEnv(name);
   const normalized = raw.trim().toLowerCase();
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;

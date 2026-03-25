@@ -5,9 +5,11 @@
     <string name="organizer_panel">Panel organizador</string>
     <string name="organizer_summary_title">Resumen de respuestas</string>
     <string name="organizer_diffusion_title">Mensaje difusion</string>
+    <string name="organizer_carousel_title">Carrusel</string>
     <string name="open_menu">Abrir menu</string>
     <string name="menu_confirmed">Lista de confirmados</string>
     <string name="menu_diffusion">Mensaje difusion</string>
+    <string name="menu_carousel">Carrusel</string>
 
     <string name="status_yes">Si</string>
     <string name="status_no">No</string>
@@ -20,7 +22,7 @@
     <string name="no_sync_yet">Sin sincronizacion aun.</string>
     <string name="no_records">No hay respuestas para mostrar.</string>
 
-    <string name="diffusion_hint">Selecciona destinatarios, completa asunto y mensaje, y envia la difusion.</string>
+    <string name="diffusion_hint">Selecciona destinatarios, completa asunto y mensaje, y envia la difusion desde la app organizador.</string>
     <string name="recipient_group">Grupo destinatario</string>
     <string name="filter_yes">Enviar a quienes confirmaron Si</string>
     <string name="filter_no">Enviar a quienes confirmaron No</string>
@@ -32,17 +34,33 @@
     <string name="send_diffusion">Enviar difusion</string>
     <string name="required_field">Campo obligatorio</string>
 
+    <string name="carousel_hint">Administra las imagenes del carrusel usando Cloudinary y publica la seleccion en Neon.</string>
+    <string name="carousel_upload">Subir imagenes</string>
+    <string name="carousel_publish">Publicar seleccionadas</string>
+    <string name="carousel_delete">Eliminar de Cloudinary</string>
+    <string name="carousel_current_title">Publicadas actualmente</string>
+    <string name="carousel_assets_title">Assets disponibles en Cloudinary</string>
+    <string name="carousel_empty_published">Todavia no hay fotos publicadas.</string>
+    <string name="carousel_empty_assets">No hay assets disponibles en Cloudinary.</string>
+    <string name="carousel_selected_count_default">Seleccionadas: 0</string>
+    <string name="carousel_selected_count">Seleccionadas: %1$d</string>
+    <string name="carousel_uploading">Subiendo imagenes a Cloudinary...</string>
+    <string name="carousel_upload_success">Las imagenes se subieron correctamente.</string>
+    <string name="carousel_publish_success">Se publico una nueva seleccion de %1$d imagenes.</string>
+    <string name="carousel_delete_success">Se eliminaron %1$d assets de Cloudinary.</string>
+    <string name="carousel_error_loading">No se pudo cargar el estado del carrusel.</string>
+    <string name="carousel_error_upload">No se pudo subir la imagen seleccionada.</string>
+    <string name="carousel_error_publish">No se pudo publicar la seleccion en la base de datos.</string>
+    <string name="carousel_error_delete">No se pudieron eliminar los assets seleccionados.</string>
+
     <string name="splash_title">Casa Miento</string>
     <string name="splash_subtitle">Cargando datos</string>
     <string name="splash_loading">Cargando... %1$d%%</string>
     <string name="splash_loading_default">Cargando... 0%</string>
+    <string name="bootstrap_error">No se pudo leer la configuracion o los datos del organizador.</string>
 
-    <string name="config_error_snackbar">Configuracion incompleta. Faltan claves: %1$s</string>
+    <string name="config_error_title">Configuracion obligatoria faltante</string>
+    <string name="config_error_message">Configuracion incompleta. Faltan claves: %1$s</string>
     <string name="config_error_close">Cerrar app</string>
-
-    <string name="login_user">Usuario administrador</string>
-    <string name="login_password">Clave</string>
-    <string name="login_button">Ingresar</string>
-    <string name="login_failed">No se pudo iniciar sesion.</string>
-    <string name="session_expired">Sesión expirada. Volvé a iniciar sesión.</string>
+    <string name="fatal_error_title">No se puede continuar</string>
 </resources>

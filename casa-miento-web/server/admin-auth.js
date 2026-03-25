@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { ConfigError, requiredEnv } from './config.js';
+import { requiredEnv, requiredIntEnv } from './config.js';
 
 export class UnauthorizedError extends Error {
   constructor(message = 'No autorizado') {
@@ -11,15 +11,10 @@ export class UnauthorizedError extends Error {
 
 const adminUser = () => requiredEnv('ADMIN_USER');
 const adminPass = () => requiredEnv('ADMIN_PASS');
+const mobileOrganizerToken = () => (process.env.MOBILE_ORGANIZER_TOKEN || '').trim();
 
 const jwtSecret = () => requiredEnv('ADMIN_JWT_SECRET');
-const jwtTtlMinutes = () => {
-  const raw = process.env.ADMIN_JWT_TTL_MINUTES;
-  if (raw === undefined || raw === null || raw === '') return 720;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) throw new ConfigError('ADMIN_JWT_TTL_MINUTES');
-  return parsed;
-};
+const jwtTtlMinutes = () => requiredIntEnv('ADMIN_JWT_TTL_MINUTES');
 
 export const createAdminToken = (username) => {
   const payload = { sub: 'admin', user: username };
@@ -36,6 +31,18 @@ export const verifyAdminToken = (token) => {
     }
     return payload;
   } catch {
+    throw new UnauthorizedError('Token invalido o expirado.');
+  }
+};
+
+export const verifyOrganizerToken = (token) => {
+  try {
+    return verifyAdminToken(token);
+  } catch {
+    const expectedMobileToken = mobileOrganizerToken();
+    if (expectedMobileToken && token === expectedMobileToken) {
+      return { sub: 'mobile-organizer' };
+    }
     throw new UnauthorizedError('Token invalido o expirado.');
   }
 };

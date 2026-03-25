@@ -3,23 +3,27 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="screen_background">#FFF8F4EF</color>
-    <color name="toolbar_background">#FFF3E8DD</color>
-    <color name="toolbar_text">#FF3A2A20</color>
-    <color name="card_background">#FFFFFCF9</color>
-    <color name="text_primary">#FF35281E</color>
-    <color name="text_muted">#FF6C5A4A</color>
+    <color name="screen_background">#FFF7F2EB</color>
+    <color name="toolbar_background">#FF6E4328</color>
+    <color name="toolbar_text">#FFFFF8F2</color>
+    <color name="card_background">#FFFFFFFF</color>
+    <color name="text_primary">#FF20110A</color>
+    <color name="text_muted">#FF684B3A</color>
+    <color name="border_strong">#FF9E6D4C</color>
 
-    <color name="status_yes">#FF1A8F5D</color>
-    <color name="status_no">#FFC74A4A</color>
+    <color name="action_primary">#FF8C4E24</color>
+    <color name="action_primary_soft">#FFF2DDCB</color>
 
-    <color name="drawer_background">#FFF5ECE2</color>
-    <color name="drawer_title">#FF4B3627</color>
-    <color name="drawer_handle">#FFB78A63</color>
+    <color name="status_yes">#FF176E49</color>
+    <color name="status_no">#FFB03737</color>
 
-    <color name="splash_background">#FFF7E9DA</color>
-    <color name="splash_title">#FF563822</color>
-    <color name="splash_subtitle">#FF785741</color>
-    <color name="splash_progress">#FFB86A39</color>
-    <color name="splash_progress_track">#FFE8C8AD</color>
+    <color name="drawer_background">#FFF4E6D8</color>
+    <color name="drawer_title">#FF2C1A10</color>
+    <color name="drawer_handle">#FFA15E30</color>
+
+    <color name="splash_background">#FFF0D8C1</color>
+    <color name="splash_title">#FF3B2314</color>
+    <color name="splash_subtitle">#FF5C4332</color>
+    <color name="splash_progress">#FF8C4E24</color>
+    <color name="splash_progress_track">#FFE6C5A8</color>
 </resources>

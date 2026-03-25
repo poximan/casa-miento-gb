@@ -70,6 +70,15 @@ export class ApiErrorMapper {
       );
     }
 
+    if (code === 'DB_SCHEMA_MISMATCH') {
+      return new ApiRequestError(
+        'El backend detecto un esquema de base de datos incompatible.',
+        response.status,
+        'Esquema incompatible',
+        hint || 'Este proyecto requiere recrear la base de datos ante cambios de modelo.'
+      );
+    }
+
     if (code === 'INTERNAL_SERVER_ERROR') {
       return new ApiRequestError(
         'No se pudo obtener el resumen por un error interno del backend.',

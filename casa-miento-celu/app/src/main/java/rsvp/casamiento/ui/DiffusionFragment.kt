@@ -88,13 +88,9 @@ class DiffusionFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     binding.sendingProgress.isVisible = state.isSendingEmail
-                    binding.sendButton.isEnabled = !state.isSendingEmail && !state.authError
+                    binding.sendButton.isEnabled = !state.isSendingEmail
                     binding.sendResultText.isVisible = !state.sendMessage.isNullOrBlank()
                     binding.sendResultText.text = state.sendMessage
-                    if (state.authError) {
-                        binding.sendResultText.isVisible = true
-                        binding.sendResultText.text = getString(R.string.session_expired)
-                    }
                     updateRecipientsLabel()
                 }
             }

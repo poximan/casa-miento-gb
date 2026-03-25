@@ -1,3 +1,2 @@
-# Copiá este archivo a local.properties (no versionado) o exporta la variable en tu entorno.
-
-API_BASE_URL=https://casa-miento-web.vercel.app
+API_BASE_URL=https://completar-backend-web
+MOBILE_ORGANIZER_TOKEN=reemplaza-por-el-token-del-backend

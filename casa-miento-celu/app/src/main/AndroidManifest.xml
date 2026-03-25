@@ -14,7 +14,7 @@
         android:theme="@style/Theme.Casamientocelu">
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.Casamientocelu.Splash">
             <intent-filter>
@@ -27,11 +27,6 @@
             android:name=".MainActivity"
             android:exported="false"
             android:theme="@style/Theme.Casamientocelu" />
-
-        <activity
-            android:name=".SplashActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Casamientocelu.Splash" />
     </application>
 
 </manifest>

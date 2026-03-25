@@ -1,36 +1,11 @@
-import pool, { ensureTables } from '../server/db.js';
-import { extractBearerToken, verifyAdminToken, UnauthorizedError } from '../server/admin-auth.js';
-import { buildTransport, fromAddress } from '../server/mailer.js';
+import { extractBearerToken, verifyOrganizerToken, UnauthorizedError } from '../server/admin-auth.js';
 import { isConfigError, sendSafeConfigError } from '../server/config.js';
+import { parseJsonBody, withCors } from '../server/http.js';
 import { logOperationalError, mapOperationalError } from '../server/operational-error.js';
-
-const parseBody = async (req) => {
-  if (req.body) return req.body;
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(data ? JSON.parse(data) : {});
-      } catch (err) {
-        reject(err);
-      }
-    });
-  });
-};
-
-const withCors = (res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-};
-
-const allowedFilters = ['yes', 'no', 'all'];
+import { allowedBroadcastFilters, sendBroadcast } from '../server/services/admin-broadcast-service.js';
 
 export default async function handler(req, res) {
-  withCors(res);
+  withCors(res, 'POST, OPTIONS');
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -47,14 +22,14 @@ export default async function handler(req, res) {
       res.status(401).json({ error: 'No autorizado', code: 'UNAUTHORIZED' });
       return;
     }
-    verifyAdminToken(token);
+    verifyOrganizerToken(token);
 
-    const body = await parseBody(req);
+    const body = await parseJsonBody(req);
     const filter = (body.filter || '').toLowerCase();
     const subject = (body.subject || '').trim();
     const message = (body.message || '').trim();
 
-    if (!allowedFilters.includes(filter)) {
+    if (!allowedBroadcastFilters.includes(filter)) {
       res.status(400).json({ error: 'Filtro invalido. Usa yes, no o all.' });
       return;
     }
@@ -63,42 +38,8 @@ export default async function handler(req, res) {
       return;
     }
 
-    await ensureTables();
-    const { rows } = await pool.query(
-      'SELECT attending, email FROM rsvps WHERE email IS NOT NULL AND email <> \'\''
-    );
-
-    const recipients = rows
-      .filter((r) => {
-        if (filter === 'all') return true;
-        if (filter === 'yes') return r.attending === true;
-        if (filter === 'no') return r.attending === false;
-        return false;
-      })
-      .map((r) => (r.email || '').trim())
-      .filter((email) => email);
-
-    const uniqueRecipients = Array.from(new Set(recipients.map((e) => e.toLowerCase())));
-
-    if (!uniqueRecipients.length) {
-      res.status(400).json({ error: 'No hay destinatarios para el filtro seleccionado.' });
-      return;
-    }
-
-    const transporter = buildTransport();
-    const from = fromAddress();
-
-    for (const to of uniqueRecipients) {
-      // envio secuencial para simplificar y evitar limites de conexion
-      await transporter.sendMail({
-        from,
-        to,
-        subject,
-        text: message,
-      });
-    }
-
-    res.status(200).json({ sent: uniqueRecipients.length });
+    const sent = await sendBroadcast({ filter, subject, message });
+    res.status(200).json({ sent });
   } catch (err) {
     if (isConfigError(err)) {
       sendSafeConfigError(res);
@@ -106,6 +47,10 @@ export default async function handler(req, res) {
     }
     if (err instanceof UnauthorizedError) {
       res.status(401).json({ error: err.message, code: err.code });
+      return;
+    }
+    if (err.message === 'No hay destinatarios para el filtro seleccionado.') {
+      res.status(400).json({ error: err.message });
       return;
     }
     if (err.responseCode || err.code === 'EAUTH') {

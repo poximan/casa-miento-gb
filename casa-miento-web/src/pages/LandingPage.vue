@@ -42,6 +42,7 @@
       </section>
 
       <PhotoCarousel v-if="photos.length" :photos="photos" />
+      <div v-else-if="photosError" class="card error">{{ photosError }}</div>
 
       <section class="section grid-two">
         <PaymentSection :bank="config.bank" :mercado-pago="config.mercadoPago" />
@@ -82,12 +83,14 @@ import Countdown from '../components/Countdown.vue';
 import PhotoCarousel from '../components/PhotoCarousel.vue';
 import PaymentSection from '../components/PaymentSection.vue';
 import RsvpForm from '../components/RsvpForm.vue';
+import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
 
 const config = ref(null);
 const loading = ref(true);
 const error = ref('');
 const toast = ref('');
 const photos = ref([]);
+const photosError = ref('');
 
 onMounted(async () => {
   try {
@@ -106,11 +109,20 @@ const loadPhotos = async () => {
   if (!config.value) return;
   try {
     const res = await fetch('/api/photos');
-    const data = res.ok ? await res.json() : { photos: [] };
+    if (!res.ok) {
+      throw await ApiErrorMapper.fromResponse(res, 'No se pudo cargar el carrusel.');
+    }
+    const data = await res.json();
     photos.value = Array.isArray(data.photos) ? data.photos : [];
+    photosError.value = '';
   } catch (err) {
+    const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudo cargar el carrusel.');
+    console.error('[landing] Fallo la carga de fotos.', mapped);
     photos.value = [];
-    console.warn('Fallo la carga de fotos del album, no se muestran imagenes.', err?.message || err);
+    photosError.value = mapped.message;
+    if (mapped.code === 'CONFIG_MISSING') {
+      window.alert(mapped.detail || mapped.message);
+    }
   }
 };
 

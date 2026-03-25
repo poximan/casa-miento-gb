@@ -15,7 +15,7 @@ export class ConfigMissingError extends AppError {
       code: 'CONFIG_MISSING',
       message: 'Configuracion incompleta del servicio.',
       title: 'Configuracion incompleta',
-      detail: 'Falta configuracion del servidor. Contacta al administrador.',
+      detail: 'Falta configuracion obligatoria del servidor. No es posible continuar.',
       status: 500,
     });
   }

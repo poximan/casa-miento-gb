@@ -1,6 +1,5 @@
 package rsvp.casamiento
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.MotionEvent
 import androidx.activity.addCallback
@@ -8,14 +7,10 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import kotlin.math.abs
 import kotlin.math.max
-import kotlinx.coroutines.launch
 import rsvp.casamiento.databinding.ActivityMainBinding
-import rsvp.casamiento.session.SessionManager
+import rsvp.casamiento.ui.CarouselFragment
 import rsvp.casamiento.ui.ConfirmedListFragment
 import rsvp.casamiento.ui.DiffusionFragment
 import rsvp.casamiento.ui.OrganizerViewModel
@@ -27,8 +22,7 @@ class MainActivity : AppCompatActivity() {
     private var swipeStartX = 0f
     private var swipeStartY = 0f
     private var globalSwipeHandled = false
-    private val sessionManager by lazy { SessionManager(this) }
-    val viewModelFactory by lazy { OrganizerViewModel.factory(sessionManager) }
+    val viewModelFactory by lazy { OrganizerViewModel.factory() }
     private val viewModel: OrganizerViewModel by viewModels { viewModelFactory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,10 +37,10 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             showScreen(OrganizerScreen.CONFIRMED)
         } else {
-            currentScreen = if (supportFragmentManager.findFragmentById(R.id.fragment_container) is DiffusionFragment) {
-                OrganizerScreen.DIFFUSION
-            } else {
-                OrganizerScreen.CONFIRMED
+            currentScreen = when (supportFragmentManager.findFragmentById(R.id.fragment_container)) {
+                is DiffusionFragment -> OrganizerScreen.DIFFUSION
+                is CarouselFragment -> OrganizerScreen.CAROUSEL
+                else -> OrganizerScreen.CONFIRMED
             }
             paintCurrentScreen()
         }
@@ -61,6 +55,11 @@ class MainActivity : AppCompatActivity() {
             binding.drawerLayout.closeDrawer(GravityCompat.START)
         }
 
+        binding.menuCarouselButton.setOnClickListener {
+            showScreen(OrganizerScreen.CAROUSEL)
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         binding.drawerHandle.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
         }
@@ -70,16 +69,6 @@ class MainActivity : AppCompatActivity() {
                 binding.drawerHandle.alpha = 1f - (slideOffset * 0.65f)
             }
         })
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    if (state.authError) {
-                        goToLogin()
-                    }
-                }
-            }
-        }
 
         onBackPressedDispatcher.addCallback(this) {
             when {
@@ -102,10 +91,12 @@ class MainActivity : AppCompatActivity() {
         val fragment = when (screen) {
             OrganizerScreen.CONFIRMED -> ConfirmedListFragment()
             OrganizerScreen.DIFFUSION -> DiffusionFragment()
+            OrganizerScreen.CAROUSEL -> CarouselFragment()
         }
         val title = when (screen) {
             OrganizerScreen.CONFIRMED -> getString(R.string.organizer_summary_title)
             OrganizerScreen.DIFFUSION -> getString(R.string.organizer_diffusion_title)
+            OrganizerScreen.CAROUSEL -> getString(R.string.organizer_carousel_title)
         }
 
         supportFragmentManager
@@ -120,10 +111,12 @@ class MainActivity : AppCompatActivity() {
         val title = explicitTitle ?: when (currentScreen) {
             OrganizerScreen.CONFIRMED -> getString(R.string.organizer_summary_title)
             OrganizerScreen.DIFFUSION -> getString(R.string.organizer_diffusion_title)
+            OrganizerScreen.CAROUSEL -> getString(R.string.organizer_carousel_title)
         }
         supportActionBar?.title = title
         binding.menuConfirmedButton.isChecked = currentScreen == OrganizerScreen.CONFIRMED
         binding.menuDiffusionButton.isChecked = currentScreen == OrganizerScreen.DIFFUSION
+        binding.menuCarouselButton.isChecked = currentScreen == OrganizerScreen.CAROUSEL
     }
 
     private fun setupEdgeZoneSwipe() {
@@ -209,13 +202,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun goToLogin() {
-        startActivity(Intent(this, LoginActivity::class.java))
-        finish()
-    }
-
     private enum class OrganizerScreen {
         CONFIRMED,
-        DIFFUSION
+        DIFFUSION,
+        CAROUSEL
     }
 }

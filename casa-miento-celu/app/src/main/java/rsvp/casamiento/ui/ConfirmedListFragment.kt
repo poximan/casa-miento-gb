@@ -94,6 +94,8 @@ class ConfirmedListFragment : Fragment() {
                         text = "$menu: $count"
                         isCheckable = false
                         isClickable = false
+                        setChipBackgroundColorResource(R.color.action_primary_soft)
+                        setTextColor(requireContext().getColor(R.color.text_primary))
                     }
                 )
             }

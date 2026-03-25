@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_enabled="false" android:color="#806C5A4A" />
-    <item android:state_checked="true" android:color="@color/splash_progress" />
-    <item android:color="@color/toolbar_text" />
+    <item android:state_checked="true" android:color="@color/action_primary" />
+    <item android:color="@color/border_strong" />
 </selector>

@@ -52,8 +52,8 @@
 import { nextTick, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminPanel from '../components/AdminPanel.vue';
+import { ApiErrorMapper } from '../services/ApiErrorMapper.js';
 
-// Precarga credenciales para login rapido en entorno local
 const username = ref('admin');
 const password = ref('evelindamian');
 const token = ref('');
@@ -79,8 +79,7 @@ const login = async () => {
     });
 
     if (!response.ok) {
-      const detail = await response.json().catch(() => ({}));
-      throw new Error(detail?.error || 'No se pudo iniciar sesion.');
+      throw await ApiErrorMapper.fromResponse(response, 'No se pudo iniciar sesion.');
     }
 
     let data;
@@ -101,9 +100,13 @@ const login = async () => {
     await nextTick();
     panelContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
-    console.warn('[admin-login][client] Fallo inicio de sesion.', err);
+    const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudo iniciar sesion.');
+    console.error('[admin-login][client] Fallo inicio de sesion.', mapped);
+    if (mapped.code === 'CONFIG_MISSING') {
+      window.alert(mapped.detail || mapped.message);
+    }
     token.value = '';
-    loginError.value = err.message || 'No se pudo iniciar sesion.';
+    loginError.value = mapped.message;
   } finally {
     loginLoading.value = false;
   }

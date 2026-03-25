@@ -78,6 +78,15 @@ const mapPostgresError = (error) => {
 };
 
 export const mapOperationalError = (error) => {
+  if (error?.code === 'DB_SCHEMA_MISMATCH') {
+    return {
+      status: 500,
+      code: 'DB_SCHEMA_MISMATCH',
+      error: 'El esquema de base de datos no coincide con la version actual del backend.',
+      hint: 'Este proyecto no migra datos en caliente. Recrea la base de datos y vuelve a cargarla.',
+    };
+  }
+
   const nodeNetwork = mapNodeNetworkError(error);
   if (nodeNetwork) return nodeNetwork;
 

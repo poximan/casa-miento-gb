@@ -57,8 +57,8 @@
         </select>
       </div>
       <div class="field">
-        <label>Email (opcional)</label>
-        <input v-model="form.email" type="email" placeholder="correo@ejemplo.com" />
+        <label>Email</label>
+        <input v-model="form.email" type="email" placeholder="correo@ejemplo.com" required />
       </div>
       <div class="field">
         <label>Teléfono (opcional)</label>
@@ -180,6 +180,10 @@ const validate = () => {
     return 'Nombre y apellido son obligatorios.';
   }
 
+  if (!form.email.trim()) {
+    return 'El email es obligatorio para enviarte la confirmacion.';
+  }
+
   for (const guest of form.extraGuests) {
     if (!guest.firstName.trim() || !guest.lastName.trim()) {
       return 'Completa nombre y apellido de cada invitado extra.';
@@ -237,6 +241,7 @@ const submit = async () => {
     const mapped = errorCaught instanceof AppError
       ? errorCaught
       : ApiErrorMapper.fromUnknown(errorCaught, 'No pudimos guardar tu respuesta.');
+    console.error('[rsvp-form] Error enviando confirmacion.', mapped);
 
     if (!(errorCaught instanceof AppError)) {
       openForError(mapped);
