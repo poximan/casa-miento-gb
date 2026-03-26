@@ -2,7 +2,10 @@
 .gradle
 /.gradle-local
 /local.properties
-/.idea
+/.idea/*
+!/.idea/runConfigurations/
+/.idea/runConfigurations/*
+!/.idea/runConfigurations/casa_miento_app.xml
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
