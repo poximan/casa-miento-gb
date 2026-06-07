@@ -45,6 +45,18 @@ export class ApiRequestError extends AppError {
   }
 }
 
+export class SavedButEmailFailedError extends AppError {
+  constructor(detail = null, status = 502) {
+    super({
+      code: 'RSVP_SAVED_EMAIL_FAILED',
+      message: 'La respuesta se guardo, pero no se pudo enviar el email de confirmacion.',
+      title: 'Respuesta guardada con incidencia',
+      detail: detail || 'La respuesta ya quedo guardada. No reenvies el formulario.',
+      status,
+    });
+  }
+}
+
 export class NetworkError extends AppError {
   constructor(message) {
     super({

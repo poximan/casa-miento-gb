@@ -11,7 +11,7 @@ export class UnauthorizedError extends Error {
 
 const adminUser = () => requiredEnv('ADMIN_USER');
 const adminPass = () => requiredEnv('ADMIN_PASS');
-const mobileOrganizerToken = () => (process.env.MOBILE_ORGANIZER_TOKEN || '').trim();
+const mobileOrganizerToken = () => requiredEnv('MOBILE_ORGANIZER_TOKEN');
 
 const jwtSecret = () => requiredEnv('ADMIN_JWT_SECRET');
 const jwtTtlMinutes = () => requiredIntEnv('ADMIN_JWT_TTL_MINUTES');

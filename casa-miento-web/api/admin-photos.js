@@ -26,12 +26,14 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const photos = Array.isArray(body.photos)
-        ? body.photos
-            .map((photo) => (typeof photo === 'string' ? photo.trim() : ''))
-            .filter(Boolean)
-            .slice(0, 8)
-        : [];
+      if (!Array.isArray(body.photos)) {
+        res.status(400).json({ error: 'Envia un arreglo de URLs de fotos.' });
+        return;
+      }
+
+      const photos = body.photos
+        .map((photo) => (typeof photo === 'string' ? photo.trim() : ''))
+        .filter(Boolean);
 
       if (!photos.length) {
         res.status(400).json({ error: 'Envia un arreglo de URLs de fotos.' });

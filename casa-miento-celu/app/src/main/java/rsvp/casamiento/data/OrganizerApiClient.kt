@@ -47,6 +47,18 @@ class OrganizerApiClient {
 
     private fun parseErrorMessage(response: String, status: Int): String {
         val payload = runCatching { JSONObject(response) }.getOrNull()
+        val code = payload?.optString("code").orEmpty()
+
+        if (status == 401) {
+            return "El backend rechazo el token tecnico de la app. " +
+                "Revisa MOBILE_ORGANIZER_TOKEN en Android y en el deploy del backend."
+        }
+
+        if (code == "CONFIG_MISSING") {
+            return "El backend remoto tiene configuracion incompleta. " +
+                "Revisa variables de entorno del deploy."
+        }
+
         return listOf(
             payload?.optString("error"),
             payload?.optString("hint"),

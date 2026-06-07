@@ -52,11 +52,13 @@
     <string name="carousel_error_upload">No se pudo subir la imagen seleccionada.</string>
     <string name="carousel_error_publish">No se pudo publicar la seleccion en la base de datos.</string>
     <string name="carousel_error_delete">No se pudieron eliminar los assets seleccionados.</string>
+    <string name="carousel_select_assets_first">Selecciona al menos un asset antes de continuar.</string>
 
     <string name="splash_title">Casa Miento</string>
     <string name="splash_subtitle">Cargando datos</string>
     <string name="splash_loading">Cargando... %1$d%%</string>
     <string name="splash_loading_default">Cargando... 0%</string>
+    <string name="splash_syncing">Sincronizando datos...</string>
     <string name="bootstrap_error">No se pudo leer la configuracion o los datos del organizador.</string>
 
     <string name="config_error_title">Configuracion obligatoria faltante</string>
