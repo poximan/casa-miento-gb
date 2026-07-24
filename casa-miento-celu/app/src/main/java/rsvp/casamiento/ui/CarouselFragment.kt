@@ -113,6 +113,10 @@ class CarouselFragment : Fragment() {
         val urls = cloudAssets
             .filter { selectedPublicIds.contains(it.publicId) }
             .map { it.url }
+        if (urls.isEmpty()) {
+            showMessage(getString(R.string.carousel_select_assets_first), true)
+            return
+        }
 
         setBusy(true)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -131,6 +135,10 @@ class CarouselFragment : Fragment() {
 
     private fun deleteSelectedAssets() {
         val ids = selectedPublicIds.toList()
+        if (ids.isEmpty()) {
+            showMessage(getString(R.string.carousel_select_assets_first), true)
+            return
+        }
         setBusy(true)
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching { cloudinaryRepository.deleteAssets(ids) }.fold(
@@ -164,6 +172,7 @@ class CarouselFragment : Fragment() {
     }
 
     private fun renderAssets(assets: List<CloudinaryAsset>) {
+        selectedPublicIds.retainAll(assets.map { it.publicId }.toSet())
         binding.assetContainer.removeAllViews()
         binding.emptyAssetsText.isVisible = assets.isEmpty()
         binding.selectedAssetsText.text = getString(R.string.carousel_selected_count, selectedPublicIds.size)

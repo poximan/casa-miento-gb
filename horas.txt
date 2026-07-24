@@ -1,0 +1,4 @@
+4hs server web
+4hs app móvil
+6hs integración y seguridad
+8hs carrusel y ajustes

@@ -140,6 +140,7 @@ CLOUDINARY_CLOUD_NAME=tu-cloud
 CLOUDINARY_API_KEY=tu-api-key
 CLOUDINARY_API_SECRET=tu-api-secret
 CLOUDINARY_FOLDER=carpeta-carrusel
+CLOUDINARY_UPLOAD_MAX_BYTES=4194304
 ```
 
 ## Contrato con Android

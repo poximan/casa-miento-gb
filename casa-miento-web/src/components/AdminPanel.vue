@@ -177,11 +177,6 @@ watch(
   () => props.token,
   (value) => {
     if (value) {
-      console.info('[admin-panel] Token valido recibido, sincronizando datos.');
-    } else {
-      console.info('[admin-panel] Token ausente, limpiando panel.');
-    }
-    if (value) {
       fetchSummary();
       loadCloudData();
       resetSelection();
@@ -249,10 +244,6 @@ const photosPreview = computed(() =>
 );
 
 async function loadCloudData() {
-  console.info('[admin-panel] loadCloudData() start', {
-    tokenPresent: Boolean(props.token),
-    tokenSnippet: props.token ? String(props.token).slice(0, 12) : '(none)',
-  });
   photosError.value = '';
   cloudError.value = '';
   cloudLoading.value = true;
@@ -260,7 +251,6 @@ async function loadCloudData() {
     const res = await fetch('/api/cloudinary-assets', {
       headers: { Authorization: `Bearer ${props.token}` },
     });
-    console.info('[admin-panel] loadCloudData() fetch status', res.status);
     if (res.status === 401) {
       emit('logout');
       photosError.value = 'Sesion expirada. Volve a iniciar sesion.';
@@ -279,11 +269,6 @@ async function loadCloudData() {
       : [];
     cloudAssets.value = assets;
     selectedCloud.value = new Set();
-    console.info('[admin-panel] Cloudinary cargado.', {
-      apiPayload: data,
-      assets: assets.length,
-      uploaderDisponible: !uploaderUnavailable.value,
-    });
   } catch (err) {
     const mapped = ApiErrorMapper.fromUnknown(err, 'No se pudo cargar Cloudinary.');
     console.error('[admin-panel] Error cargando Cloudinary.', mapped);
@@ -303,6 +288,10 @@ const savePhotos = async () => {
   const urls = photosPreview.value;
   if (!urls.length) {
     photosError.value = 'Agrega al menos una URL.';
+    return;
+  }
+  if (urls.length > 8) {
+    photosError.value = 'Maximo 8 fotos por publicacion.';
     return;
   }
   savingPhotos.value = true;
@@ -477,10 +466,6 @@ const resetSelection = () => {
 };
 
 async function fetchSummary() {
-  console.info('[admin-panel] fetchSummary() start', {
-    tokenPresent: Boolean(props.token),
-    tokenSnippet: props.token ? String(props.token).slice(0, 12) : '(none)',
-  });
   if (!props.token) return;
 
   loading.value = true;
@@ -488,7 +473,6 @@ async function fetchSummary() {
     const response = await fetch('/api/admin-summary', {
       headers: { Authorization: `Bearer ${props.token}` },
     });
-    console.info('[admin-panel] fetchSummary() status', response.status);
 
     if (response.status === 401) {
       emit('logout');
@@ -502,12 +486,6 @@ async function fetchSummary() {
 
     panelError.value = '';
     const data = await response.json();
-    console.info('[admin-panel] Resumen cargado.', {
-      totalRows: Array.isArray(data.rows) ? data.rows.length : 0,
-      attendingYes: data.yes,
-      attendingNo: data.no,
-    });
-
     summary.yes = data.yes;
     summary.no = data.no;
     summary.people = data.people;

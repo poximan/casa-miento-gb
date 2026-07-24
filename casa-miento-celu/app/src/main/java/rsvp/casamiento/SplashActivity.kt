@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import rsvp.casamiento.config.AppConfigurationValueProvider
 import rsvp.casamiento.config.ConfigurationValidationService
 import rsvp.casamiento.data.NeonRsvpRepository
@@ -53,18 +54,23 @@ class SplashActivity : AppCompatActivity() {
                 delay(100)
             }
 
-            if (fetchJob.isCompleted) {
-                fetchJob.await().fold(
-                    onSuccess = { summary ->
-                        OrganizerBootstrapCache.save(records = summary.records, errorMessage = null)
-                    },
-                    onFailure = { error ->
-                        OrganizerBootstrapCache.save(
-                            records = emptyList(),
-                            errorMessage = error.message ?: getString(R.string.bootstrap_error)
-                        )
-                    }
-                )
+            binding.splashProgress.isIndeterminate = true
+            binding.splashProgressLabel.text = getString(R.string.splash_syncing)
+
+            fetchJob.await().fold(
+                onSuccess = { summary ->
+                    OrganizerBootstrapCache.save(records = summary.records, errorMessage = null)
+                },
+                onFailure = { error ->
+                    OrganizerBootstrapCache.save(
+                        records = emptyList(),
+                        errorMessage = error.message ?: getString(R.string.bootstrap_error)
+                    )
+                }
+            )
+
+            withContext(Dispatchers.Main) {
+                binding.splashProgress.isIndeterminate = false
             }
 
             startActivity(Intent(this@SplashActivity, MainActivity::class.java))

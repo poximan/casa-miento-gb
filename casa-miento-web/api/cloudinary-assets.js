@@ -1,10 +1,15 @@
 import 'dotenv/config';
 import { extractBearerToken, verifyOrganizerToken, UnauthorizedError } from '../server/admin-auth.js';
-import { isConfigError, requiredEnv, sendSafeConfigError } from '../server/config.js';
+import { isConfigError, requiredEnv, requiredIntEnv, sendSafeConfigError } from '../server/config.js';
 import { parseJsonBody, withCors } from '../server/http.js';
+import { logOperationalError, mapOperationalError } from '../server/operational-error.js';
 import { deleteAssets, listAssets, uploadAsset } from '../server/services/cloudinary-service.js';
 
 const cloudinaryCloudName = () => requiredEnv('CLOUDINARY_CLOUD_NAME');
+const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const maxUploadBytes = () => requiredIntEnv('CLOUDINARY_UPLOAD_MAX_BYTES');
+
+const isLikelyBase64 = (value) => /^[A-Za-z0-9+/=\r\n]+$/.test(value);
 
 export default async function handler(req, res) {
   withCors(res, 'GET, POST, DELETE, OPTIONS');
@@ -40,6 +45,25 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'Envia mimeType y base64Data para subir la imagen.' });
         return;
       }
+      if (!allowedMimeTypes.has(mimeType)) {
+        res.status(400).json({ error: 'Tipo de archivo no permitido. Usa JPG, PNG o WEBP.' });
+        return;
+      }
+      if (!isLikelyBase64(base64Data)) {
+        res.status(400).json({ error: 'La imagen enviada no tiene un base64 valido.' });
+        return;
+      }
+      const payloadSize = Buffer.byteLength(base64Data, 'base64');
+      if (!Number.isFinite(payloadSize) || payloadSize <= 0) {
+        res.status(400).json({ error: 'La imagen enviada no se pudo decodificar.' });
+        return;
+      }
+      const maxBytes = maxUploadBytes();
+      if (payloadSize > maxBytes) {
+        const maxMb = (maxBytes / (1024 * 1024)).toFixed(2).replace(/\.00$/, '');
+        res.status(400).json({ error: `La imagen supera el tamano maximo permitido de ${maxMb} MB.` });
+        return;
+      }
 
       res.status(200).json({
         asset: await uploadAsset({ fileName, mimeType, base64Data }),
@@ -73,6 +97,12 @@ export default async function handler(req, res) {
       res.status(401).json({ error: err.message, code: err.code });
       return;
     }
-    res.status(500).json({ error: err.message || 'Error interno' });
+    const mapped = mapOperationalError(err);
+    logOperationalError('cloudinary-assets', err, mapped);
+    res.status(mapped.status).json({
+      error: mapped.error,
+      code: mapped.code,
+      hint: mapped.hint,
+    });
   }
 }

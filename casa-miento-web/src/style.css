@@ -13,6 +13,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   background: radial-gradient(circle at 30% 20%, rgba(232, 224, 210, 0.4), transparent 36%),

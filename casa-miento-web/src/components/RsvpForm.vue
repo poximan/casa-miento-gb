@@ -193,6 +193,17 @@ const validate = () => {
   return null;
 };
 
+const resetForm = () => {
+  form.primaryFirstName = '';
+  form.primaryLastName = '';
+  form.primaryMenu = 'clasico';
+  form.email = '';
+  form.phone = '';
+  form.extraGuests = [];
+  form.attending = true;
+  suggestionQuery.value = '';
+};
+
 const submit = async () => {
   const error = validate();
   if (error) {
@@ -228,15 +239,7 @@ const submit = async () => {
 
     message.value = { kind: 'success', text: 'Respuesta recibida. Gracias por avisarnos.' };
     emit('submitted');
-
-    form.primaryFirstName = '';
-    form.primaryLastName = '';
-    form.primaryMenu = 'clasico';
-    form.email = '';
-    form.phone = '';
-    form.extraGuests = [];
-    form.attending = true;
-    suggestionQuery.value = '';
+    resetForm();
   } catch (errorCaught) {
     const mapped = errorCaught instanceof AppError
       ? errorCaught
@@ -245,6 +248,12 @@ const submit = async () => {
 
     if (!(errorCaught instanceof AppError)) {
       openForError(mapped);
+    }
+
+    if (mapped.code === 'RSVP_SAVED_EMAIL_FAILED') {
+      resetForm();
+      message.value = { kind: 'success', text: mapped.message };
+      return;
     }
 
     message.value = { kind: 'error', text: mapped.message };

@@ -87,6 +87,15 @@ export const mapOperationalError = (error) => {
     };
   }
 
+  if (typeof error?.code === 'string' && error.code.startsWith('CLOUDINARY_')) {
+    return {
+      status: error.status || 502,
+      code: error.code,
+      error: error.publicMessage || 'No se pudo completar la operacion con Cloudinary.',
+      hint: error.hint || 'Revisa configuracion y disponibilidad de Cloudinary.',
+    };
+  }
+
   const nodeNetwork = mapNodeNetworkError(error);
   if (nodeNetwork) return nodeNetwork;
 
